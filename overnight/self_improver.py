@@ -1942,12 +1942,31 @@ def drain_fix_backlog(api_keys, max_fixes=3):
 def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
     print(f"BACKLOG DRAIN MODE ({fixes_per_pass} fixes/pass)")
     for pass_num in range(1, 101):
-        if not _load_json(FIX_BACKLOG): break
-        print(f"\n[Pass {pass_num}] {len(_load_json(FIX_BACKLOG))} fixes remaining...")
+        # 1. Pull from Redis first
+        transferred = drain_fix_backlog(api_keys, max_fixes=fixes_per_pass)
+        
+        # 2. Check if we have any work to do in the local JSON
+        local_backlog = _load_json(FIX_BACKLOG)
+        if not local_backlog:
+            print("🔧 No fixes in local backlog. Stopping drain.")
+            break
+            
+        print(f"\n[Pass {pass_num}] {len(local_backlog)} fixes remaining...")
+        
+        # 3. Process the backlog (this is where patches are actually generated/applied)
+        size_before = len(local_backlog)
         triage_backlog()
-        fixed = drain_fix_backlog(api_keys, max_fixes=fixes_per_pass)
-        print(f"🔧 Pass {pass_num}: {fixed} applied")
-        if fixed == 0: break
+        size_after = len(_load_json(FIX_BACKLOG))
+        
+        # 4. Calculate actual progress (items removed from JSON by triage_backlog)
+        applied = size_before - size_after
+        print(f"🔧 Pass {pass_num}: {applied} applied, {transferred} transferred from Redis")
+        
+        # 5. Only break if we made NO progress at all (prevents infinite loops)
+        if applied == 0 and transferred == 0:
+            print("🔧 No progress made. Stopping drain to prevent infinite loop.")
+            break
+            
         time.sleep(15)
 
 # ============================================================
