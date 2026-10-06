@@ -1940,73 +1940,609 @@ def drain_fix_backlog(api_keys, max_fixes=3):
     return len(redis_items)
 
 def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
-    """Actually process and apply fixes from fix_backlog.json."""
     print(f"BACKLOG DRAIN MODE ({fixes_per_pass} fixes/pass)")
-    
     for pass_num in range(1, 101):
-        # 1. Pull new items from Redis into the local JSON
+        # 1. Pull from Redis first
         transferred = drain_fix_backlog(api_keys, max_fixes=fixes_per_pass)
         
-        # 2. Load the current backlog
-        backlog = _load_json(FIX_BACKLOG)
-        if not backlog:
+        # 2. Check if we have any work to do in the local JSON
+        local_backlog = _load_json(FIX_BACKLOG)
+        if not local_backlog:
             print("🔧 No fixes in local backlog. Stopping drain.")
             break
+            
+        print(f"\n[Pass {pass_num}] {len(local_backlog)} fixes remaining...")
         
-        print(f"\n[Pass {pass_num}] {len(backlog)} fixes remaining...")
-        size_before = len(backlog)
+        # 3. Process the backlog (this is where patches are actually generated/applied)
+        size_before = len(local_backlog)
+        triage_backlog()
+        size_after = len(_load_json(FIX_BACKLOG))
         
-        # 3. ACTUALLY PROCESS the backlog items (this is what was missing!)
-        applied_count = 0
-        remaining = []
+        # 4. Calculate actual progress (items removed from JSON by triage_backlog)
+        applied = size_before - size_after
+        print(f"🔧 Pass {pass_num}: {applied} applied, {transferred} transferred from Redis")
         
-        for i, item in enumerate(backlog[:fixes_per_pass]):
-            try:
-                file_path_str = item.get("file", "")
-                issue = item.get("issue", {})
-                
-                if not file_path_str or not issue:
-                    continue
-                
-                file_path = ROOT / file_path_str
-                if not file_path.exists():
-                    continue
-                
-                print(f"  [{i+1}/{min(len(backlog), fixes_per_pass)}] 🔧 Fixing {file_path_str}...")
-                
-                # Call the actual fix generator
-                result = _auto_fix_item(
-                    file_path=file_path,
-                    issue=issue,
-                    api_keys=api_keys,
-                    original=file_path.read_text(),
-                )
-                
-                if result and result.applied:
-                    applied_count += 1
-                    print(f"       ✅ Fix applied successfully")
-                else:
-                    # Keep failed items for retry (up to a limit)
-                    remaining.append(item)
-                    
-            except Exception as e:
-                print(f"       ❌ Error processing fix: {e}")
-                remaining.append(item)
-        
-        # 4. Add unprocessed items back to remaining
-        remaining.extend(backlog[fixes_per_pass:])
-        
-        # 5. Save the updated backlog
-        _save_json(FIX_BACKLOG, remaining)
-        
-        size_after = len(remaining)
-        actually_removed = size_before - size_after
-        
-        print(f"🔧 Pass {pass_num}: {applied_count} applied, {actually_removed} removed from backlog, {transferred} transferred from Redis")
-        
-        # 6. Break if no progress
-        if applied_count == 0 and transferred == 0:
-            print("🔧 No progress made. Stopping drain.")
+        # 5. Only break if we made NO progress at all (prevents infinite loops)
+        if applied == 0 and transferred == 0:
+            print("🔧 No progress made. Stopping drain to prevent infinite loop.")
             break
-        
+            
         time.sleep(15)
+
+# ============================================================
+# ADVISORY GENERATION & B (GEMINI / OPENROUTER)
+# ============================================================
+def prefill_advisory_queue(files, api_keys, budget):
+    QUEUE_DIR.mkdir(parents=True, exist_ok=True)
+
+    # W6 FIX: source hashes already present in the pending queue. Prevents
+    # paying Gemini twice for the same content, regardless of queue filename.
+    # W1 FIX: also scan failed/ (recursively) so archived advisories are not
+    # re-paid on the next prefill pass.
+    already_queued_hashes = set()
+    scan_dirs = [QUEUE_DIR, QUEUE_DIR.parent / "failed"]
+    for search_dir in scan_dirs:
+        if not search_dir.exists():
+            continue
+        for qp in search_dir.rglob("*.json"):
+            try:
+                existing = json.loads(qp.read_text())
+            except Exception:
+                continue
+            h = existing.get("source_hash")
+            if h:
+                already_queued_hashes.add(h)
+    # W8b: backlog + deferred entries also carry source_hash. Include them so
+    # a file whose advisory already failed / was deferred is not re-analyzed
+    # every cycle. Hash changes if the file changes, so this is not permanent.
+    for bl_path in (FIX_BACKLOG, DEFERRED_BACKLOG):
+        bl = _load_json(bl_path)
+        if isinstance(bl, list):
+            for item in bl:
+                if isinstance(item, dict):
+                    h = item.get("source_hash")
+                    if h:
+                        already_queued_hashes.add(h)
+
+    for i, f in enumerate(files, 1):
+        qpath = QUEUE_DIR / f"{str(f.relative_to(ROOT)).replace('/', '__').replace('.py', '')}.json"
+        if qpath.exists(): continue
+
+        # Compute hash BEFORE the API call so we can skip duplicates for free.
+        current_hash = compute_source_hash(f)
+        if current_hash and current_hash in already_queued_hashes:
+            print(f"       ♻️ prefill skip: {f.relative_to(ROOT)} content already queued")
+            continue
+
+        if not budget.wait_if_needed("gemini", timeout=120):
+            break
+        _empty_streak = locals().get("_empty_streak", 0)
+        try:
+            advisory = gemini_pre_analysis(f.relative_to(ROOT), f.read_text(), api_keys)
+            if advisory:
+                _empty_streak = 0
+                advisory_data = {
+                    "file_path": str(f.relative_to(ROOT)),
+                    "advisory_notes": advisory,
+                    "created_at": datetime.now().isoformat(),
+                    "source_hash": current_hash or compute_source_hash(f),
+                }
+                if advisory_data["source_hash"]:
+                    advisory_data["advisory_fingerprint"] = AdvisoryIdentity(
+                        advisory_data["file_path"],
+                        advisory_data["advisory_notes"],
+                        advisory_data["source_hash"],
+                    ).fingerprint()
+                    already_queued_hashes.add(advisory_data["source_hash"])
+                qpath.write_text(json.dumps(advisory_data, indent=2))
+            else:
+                _empty_streak += 1
+                if _empty_streak >= 2:
+                    print(f"       🛑 prefill: {_empty_streak} consecutive empty Gemini responses — deferring remaining files")
+                    break
+        except Exception as e:
+            # HARDENED: Fail closed with telemetry
+            import logging
+            logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+            raise
+        time.sleep(1)
+
+
+def normalize_advisory(text: str) -> str:
+    if not text: return ""
+    text = text.lower()
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    return ' '.join(text.split())
+
+def _check_cooldown(file_path: str, advisory_notes: str, source_hash: str | None = None):
+    import json, hashlib, string
+    from datetime import datetime
+    from pathlib import Path
+
+    def norm(t):
+        if not t:
+            return ""
+        return ' '.join(t.lower().translate(str.maketrans('', '', string.punctuation)).split())
+
+    try:
+        fixes_path = FAILED_FIXES_PATH
+        if not fixes_path.exists():
+            return False, ""
+
+        rel_path = str(file_path).replace(str(Path(__file__).parent.parent) + "/", "")
+        target_hash = hashlib.sha256(
+            f"{rel_path}::{norm(advisory_notes)}".encode()
+        ).hexdigest()
+
+        target_fingerprint = None
+        if source_hash:
+            target_fingerprint = AdvisoryIdentity(
+                rel_path,
+                advisory_notes,
+                source_hash,
+            ).fingerprint()
+
+        now = datetime.now()
+        failures = 0
+
+        with open(fixes_path, "r") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+
+                if entry.get("file") != rel_path:
+                    continue
+
+                # W5 FIX: cooldown key is (file, advisory text) only.
+                # source_hash is deliberately NOT part of the match: a repeat
+                # of the same advisory against a patched file is exactly the
+                # death loop we are trying to block.
+                stored_hash = hashlib.sha256(
+                    f"{rel_path}::{norm(entry.get('advisory', ''))}".encode()
+                ).hexdigest()
+                matches = stored_hash == target_hash
+
+                if matches:
+                    try:
+                        if (now - datetime.fromisoformat(entry["timestamp"])).total_seconds() <= 86400:
+                            failures += 1
+                    except Exception as e:
+                        # HARDENED: Fail closed with telemetry
+                        import logging
+                        logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+                        raise
+
+                if failures >= 3:
+                    return True, f"Death loop cooldown ({failures} failures in 24h)"
+
+        return False, ""
+    except Exception as e:
+        return True, f"Death loop cooldown (error: {type(e).__name__})"
+
+
+def _classify_and_route_local(advisory_notes: str) -> bool:
+    """Deterministic keyword classifier. Returns True if should route to Local SLM."""
+    if not advisory_notes: return False
+    notes_lower = advisory_notes.lower()
+
+    # High-confidence local routing keywords (style/doc/maintainability)
+    local_keywords = [
+        'docstring', 'typo', 'comment', 'formatting', 'pep8', 'whitespace',
+        'unused import', 'black', 'flake8', 'mypy', 'type hint', 'variable name'
+    ]
+
+    if any(kw in notes_lower for kw in local_keywords):
+        return True
+    return False
+
+def _call_local_slm_fallback(prompt: str) -> str:
+    """Calls the sandboxed 1.5B model on port 11435."""
+    import requests, json
+    try:
+        payload = {"model": "qwen2.5-coder:1.5b", "prompt": prompt, "stream": False}
+        # Strict 15s timeout to prevent blocking the main queue
+        resp = requests.post("http://127.0.0.1:11435/api/generate", json=payload, timeout=15)
+        if resp.status_code == 200:
+            return resp.json().get("response", "")
+    except Exception as e:
+        # HARDENED: Fail closed with telemetry
+        import logging
+        logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+        raise
+    return ""
+
+def _archive_advisory(qpath, reason):
+    """W1 FIX: move a queue item out of pending/ instead of unlinking it.
+    Reason subdirectory groups: parse_failed, cooldown_blocked.
+    Reversible: files are moved, never deleted."""
+    try:
+        archive_root = QUEUE_DIR.parent / "failed"
+        dest_dir = archive_root / reason
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        target = dest_dir / f"{qpath.stem}.{stamp}.json"
+        qpath.rename(target)
+        print(f"       \U0001f4e6 archived advisory -> failed/{reason}/{target.name}")
+    except Exception as e:
+        print(f"       \u26a0\ufe0f Could not archive advisory: {e}")
+
+
+def process_advisory_queue(api_keys, budget, state):
+    pending = sorted(QUEUE_DIR.glob("*.json")) if QUEUE_DIR.exists() else []
+    print(f"======================================================================\nSHADOW CANARY: OPENROUTER PROCESSING ({len(pending)} pending advisories)\n======================================================================")
+    for i, qpath in enumerate(pending[:10], 1):
+        if not budget.wait_if_needed("openrouter", timeout=120):
+            break
+        try:
+            data = json.loads(qpath.read_text())
+            source_file = _resolve_contained_repository_path(data["file_path"])
+            print(f"  [{i}/{len(pending)}] 🔍 {data['file_path']}")
+            if not source_file.exists(): qpath.unlink(); continue
+
+            # --- STABILIZATION: COOLDOWN GATE ---
+
+
+
+            skip, reason = _check_cooldown(data["file_path"], data.get("advisory_notes", ""), data.get("source_hash"))
+            if skip:
+                print(f"       ⏸️ {reason}. Skipping to save tokens.")
+                dummy_issue = {"description": data.get("advisory_notes", "")[:200], "category": "maintainability"}
+                _record_ledger(source_file, dummy_issue, "STALE", reason)
+                _archive_advisory(qpath, "cooldown_blocked")
+                continue
+            # --------------------------------------
+
+
+            primary_response = generate(build_review_prompt(source_file, source_file.read_text(), get_file_context(source_file), advisory_notes=data["advisory_notes"]), api_keys, max_tokens=8192)
+            if not primary_response: print("       ⚠️ Primary analysis failed"); continue
+
+            improvements = extract_json_from_response(primary_response)
+            if not improvements:
+                print("       ⚠️ Parse failed; archiving to failed/ (prevents re-prefill loop)")
+                _archive_advisory(qpath, "parse_failed")
+                continue
+
+            auto_fixable = [imp for imp in improvements if isinstance(imp, dict) and imp.get("category") in SAFE_CATEGORIES]
+            print(f"       📥 {len(auto_fixable)} fixable issues queued to backlog")
+            if auto_fixable:
+                backlog = _load_json(FIX_BACKLOG)
+                current_hash = compute_source_hash(source_file)
+                for issue in auto_fixable:
+                    entry = {"file": str(source_file.relative_to(ROOT)), "issue": issue}
+                    if current_hash:
+                        entry["source_hash"] = current_hash
+                    if data.get("advisory_fingerprint"):
+                        entry["advisory_fingerprint"] = data["advisory_fingerprint"]
+                    swarm_state.add_to_backlog(entry)
+                _save_json(FIX_BACKLOG, backlog)
+                qpath.unlink()
+            else:
+                # W8a: no auto-fixable issues in this advisory. Archive instead
+                # of unlink so prefill dedup prevents re-analyzing the same
+                # content next cycle. Loop broke at 8x on consensus_gate.py.
+                _archive_advisory(qpath, "no_auto_fixable")
+        except Exception as e:
+            print(f"       ❌ Queue Error: {e}")
+        time.sleep(2)
+
+def discover_files():
+    files = []
+    for d in ["engine", "orchestrator", "memory", "tools", "overnight"]:
+        dp = ROOT / d
+        if dp.exists(): files += [f for f in dp.rglob("*.py") if f.name != "__init__.py"]
+    return sorted(files, key=lambda f: f.stat().st_size)
+
+
+# ============================================================
+# ASYNC LOCAL TDD REVIEWER (Slow Path)
+# Reads the queue and uses the local Ollama model to evaluate test quality.
+# ============================================================
+def _process_async_tdd_queue():
+    if not TDD_EVAL_QUEUE.exists(): return
+    lines = TDD_EVAL_QUEUE.read_text().strip().split("\n")
+    if not lines: return
+
+    _deadletter = ROOT / "overnight" / "tdd_eval_deadletter.jsonl"
+    _max_attempts = 3
+
+    print(f"\n\U0001f9e0 [ASYNC LOCAL REVIEWER] Processing {len(lines)} pending TDD evaluations...")
+    kept = []
+    resolved = 0
+
+    # CIRCUIT BREAKER: Check if Ollama is alive before processing hundreds of items
+    try:
+        import requests
+        health = requests.get("http://127.0.0.1:11434/api/tags", timeout=5)
+        if health.status_code != 200:
+            raise Exception("Ollama health check failed")
+    except Exception as e:
+        print(f"       ⚠️ Ollama unreachable or dead ({e}). Deferring all {len(lines)} items to avoid timeout loop.")
+        try:
+            tmp = TDD_EVAL_QUEUE.with_suffix(".jsonl.tmp")
+            tmp.write_text("\n".join(lines) + "\n" if lines else "")
+            tmp.replace(TDD_EVAL_QUEUE)
+        except Exception as e:
+            # HARDENED: Fail closed with telemetry
+            import logging
+            logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+            raise
+        print(f"\U0001f9e0 [ASYNC LOCAL REVIEWER] Aborted due to dead Ollama.")
+        return
+
+    consecutive_failures = 0
+    MAX_CONSECUTIVE_FAILURES = 3
+
+    for idx, line in enumerate(lines):
+        if not line.strip(): continue
+        try:
+            entry = json.loads(line)
+        except Exception:
+            try:
+                _deadletter.parent.mkdir(parents=True, exist_ok=True)
+                with open(_deadletter, "a") as df:
+                    df.write(json.dumps({"reason": "unparseable", "raw": line[:500]}) + "\n")
+            except Exception as e:
+                # HARDENED: Fail closed with telemetry
+                import logging
+                logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+                raise
+            resolved += 1
+            continue
+
+        entry["attempts"] = int(entry.get("attempts", 0)) + 1
+
+        try:
+            import requests
+            print(f"       ⏳ Evaluating TDD {idx+1}/{len(lines)} via Local Ollama (may take up to 5m)...")
+            prompt = f"""Evaluate this pytest test for quality and specificity.
+
+Issue: {entry.get('issue_desc')}
+
+Test:
+{entry.get('tdd_code')}
+
+Check:
+1. Does the test have at least one assert statement?
+2. Does the test specifically address the issue described above?
+3. Is the test NOT just a generic placeholder (e.g., just importing and doing nothing)?
+
+Reply with ONLY one of these verdicts:
+- GOOD: Test is valid and specific to the issue
+- BAD: Test is invalid, generic, or doesn't address the issue
+
+Verdict:"""
+            resp = requests.post("http://127.0.0.1:11434/api/generate", json={"model": "qwen2.5-coder:1.5b", "prompt": prompt, "stream": False}, timeout=300)
+            consecutive_failures = 0  # Reset on successful connection
+
+            verdict = "UNKNOWN"
+            if resp.status_code == 200:
+                text_v = resp.json().get("response", "").upper()
+                if "GOOD" in text_v: verdict = "GOOD_TEST"
+                elif "BAD" in text_v: verdict = "BAD_TEST"
+
+            _record_ledger(
+                ROOT / entry.get("file", "unknown.py"),
+                {"description": entry.get("issue_desc", ""), "category": entry.get("category", "unknown")},
+                "TDD_EVALUATED",
+                f"Local LLM Verdict: {verdict}"
+            )
+            resolved += 1
+        except Exception as e:
+            print(f"       ⚠️ Local Ollama review failed: {e}. Falling back to cloud evaluation...")
+            try:
+                # CLOUD FALLBACK: Ensure progress even if local 1-core VM is choked
+                from overnight.llm_client import generate, load_api_keys
+                keys = load_api_keys()
+                fallback_prompt = f"""Evaluate this pytest test for quality and specificity.
+
+Issue: {entry.get('issue_desc')}
+
+Test:
+{entry.get('tdd_code')}
+
+Check:
+1. Does the test have at least one assert statement?
+2. Does the test specifically address the issue described above?
+3. Is the test NOT just a generic placeholder (e.g., just importing and doing nothing)?
+
+Reply with ONLY one of these verdicts:
+- GOOD: Test is valid and specific to the issue
+- BAD: Test is invalid, generic, or doesn't address the issue
+
+Verdict:"""
+
+                cloud_resp = generate(fallback_prompt, keys, temperature=0.1, max_tokens=50, model_type="code")
+                text_v = (cloud_resp or "").upper()
+
+                if "GOOD" in text_v:
+                    verdict = "GOOD_TEST (Cloud Fallback)"
+                elif "BAD" in text_v:
+                    verdict = "BAD_TEST (Cloud Fallback)"
+                else:
+                    verdict = "UNKNOWN (Cloud Fallback)"
+
+                _record_ledger(
+                    ROOT / entry.get("file", "unknown.py"),
+                    {"description": entry.get("issue_desc", ""), "category": entry.get("category", "unknown")},
+                    "TDD_EVALUATED_CLOUD_FALLBACK",
+                    f"Cloud LLM Verdict: {verdict}"
+                )
+                resolved += 1
+                # SUCCESS! Reset consecutive failures so local can keep trying next items
+                consecutive_failures = 0
+                print(f"       ✅ Cloud fallback succeeded. Verdict: {verdict}")
+
+            except Exception as cloud_e:
+                print(f"       ❌ Cloud fallback also failed: {cloud_e}")
+                consecutive_failures += 1
+
+                if entry["attempts"] >= _max_attempts:
+                    try:
+                        _deadletter.parent.mkdir(parents=True, exist_ok=True)
+                        with open(_deadletter, "a") as df:
+                            df.write(json.dumps({"reason": "max_attempts_both_local_and_cloud", "entry": entry}) + "\n")
+                    except Exception as e:
+                        # HARDENED: Fail closed with telemetry
+                        import logging
+                        logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+                        raise
+                    resolved += 1
+                else:
+                    kept.append(json.dumps(entry))
+
+                # Circuit breaker only triggers if BOTH local and cloud fail repeatedly
+                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    print(f"       🛑 CIRCUIT BREAKER: {MAX_CONSECUTIVE_FAILURES} consecutive total failures (Local + Cloud). Stopping queue processing.")
+                    if entry["attempts"] < _max_attempts:
+                        kept.append(json.dumps(entry))
+                    kept.extend(lines[idx+1:])
+                    break
+
+    try:
+        tmp = TDD_EVAL_QUEUE.with_suffix(".jsonl.tmp")
+        tmp.write_text("\n".join(kept) + "\n" if kept else "")
+        tmp.replace(TDD_EVAL_QUEUE)
+    except Exception as e:
+        print(f"       \u26a0\ufe0f TDD queue rewrite failed: {e}")
+
+    print(f"\U0001f9e0 [ASYNC LOCAL REVIEWER] Finished. {resolved} resolved, {len(kept)} retrying.")
+
+
+def main():
+    for bak in sorted(ROOT.rglob("*.orig_backup")):
+        bak.with_suffix("").write_text(bak.read_text()); bak.unlink()
+
+    p = argparse.ArgumentParser()
+    p.add_argument("--drain-backlog", action="store_true")
+    p.add_argument("--process-only", action="store_true")
+    p.add_argument("--fixes-per-pass", type=int, default=4)
+    p.add_argument("--continuous", action="store_true", help="Run in continuous loop mode")
+    p.add_argument("--loop-interval", type=int, default=60, help="Seconds to sleep between cycles (default: 60)")
+    a = p.parse_args()
+
+    keys = load_api_keys()
+    budget = APIBudgetManager()
+    files = discover_files()
+
+    if a.continuous:
+        cycle = 1
+        _base_iv = a.loop_interval
+        _cur_iv = _base_iv
+        _IDLE_MAX = 300
+        _LEDGER = ROOT / "overnight" / "improvement_ledger.jsonl"
+        while True:
+            try:
+                _led_before = _LEDGER.stat().st_size if _LEDGER.exists() else 0
+            except Exception:
+                _led_before = 0
+            print(f"\n{'='*60}")
+            print(f"🔄 CONTINUOUS MODE - Cycle {cycle} - {datetime.now().isoformat()}")
+            print(f"{'='*60}\n")
+            try:
+                _p = len(list(QUEUE_DIR.glob("*.json"))) if QUEUE_DIR.exists() else 0
+                _b = len(_load_json(FIX_BACKLOG))
+                _d = len(_load_json(DEFERRED_BACKLOG))
+                _t = sum(1 for l in TDD_EVAL_QUEUE.read_text().splitlines() if l.strip()) if TDD_EVAL_QUEUE.exists() else 0
+                print(f"📊 queues: pending={_p} backlog={_b} deferred={_d} tdd_queue={_t}")
+            except Exception as _e:
+                print(f"📊 queues: (snapshot failed: {_e})")
+
+            try:
+                if a.drain_backlog:
+                    drain_backlog_loop(keys, budget, None, fixes_per_pass=a.fixes_per_pass)
+                elif a.process_only:
+                    process_advisory_queue(keys, budget, None)
+                else:
+                    prefill_advisory_queue(files, keys, budget)
+                    process_advisory_queue(keys, budget, None)
+                    drain_backlog_loop(keys, budget, None, fixes_per_pass=a.fixes_per_pass)
+            except Exception as e:
+                print(f"⚠️ Cycle {cycle} error: {e}")
+
+            # Run the slow local reviewer asynchronously at the end of the cycle
+            try: _process_async_tdd_queue()
+            except Exception as e:
+                # HARDENED: Fail closed with telemetry
+                import logging
+                logging.error(f'CONTROL-PLANE FAILURE in self_improver.py: {e}')
+                raise
+
+            print(budget.report())
+
+            try:
+                _led_after = _LEDGER.stat().st_size if _LEDGER.exists() else 0
+            except Exception:
+                _led_after = _led_before
+            if _led_after > _led_before:
+                _cur_iv = _base_iv
+            else:
+                _cur_iv = min(_cur_iv * 2, _IDLE_MAX)
+            # Heartbeat: Update status file for dashboard visibility
+            heartbeat_file = ROOT / "overnight" / ".heartbeat"
+            heartbeat_file.write_text(f"Cycle: {cycle} | TDD Queue: {_t} | Backlog: {_b} | Last Active: {datetime.now().strftime('%H:%M:%S')}")
+
+            print(f"\n💤 Sleeping {_cur_iv}s (base={_base_iv}s, idle_max={_IDLE_MAX}s)...")
+            time.sleep(_cur_iv)
+            cycle += 1
+    else:
+        if a.drain_backlog:
+            drain_backlog_loop(keys, budget, None, fixes_per_pass=a.fixes_per_pass)
+        elif a.process_only:
+            process_advisory_queue(keys, budget, None)
+        else:
+            prefill_advisory_queue(files, keys, budget)
+            process_advisory_queue(keys, budget, None)
+            drain_backlog_loop(keys, budget, None, fixes_per_pass=a.fixes_per_pass)
+
+        print(budget.report())
+
+if __name__ == "__main__":
+    main()
+
+# P0-3: Authoritative promotion state machine
+# Only the terminal MERGED state counts as a successful fix
+# proven_fixes.jsonl is written ONLY when state == MERGED
+
+def is_merged(state: str) -> bool:
+    """Terminal success check."""
+    return state == PromotionState.MERGED.value
+
+def write_proven_fix(candidate: dict, state: str, proven_fixes_path: str = "proven_fixes.jsonl") -> bool:
+    """
+    Write proven_fixes.jsonl only for terminal success.
+    Non-terminal states (TESTED, CANARY_PASSED, PENDING_HUMAN_MERGE) return False.
+    """
+    if not isinstance(state, str) or state not in {s.value for s in PromotionState}:
+        raise ValueError(f"Invalid promotion state: {state}")
+
+    if not is_merged(state):
+        return False
+
+    record = {
+        "memory_type": "PROVEN_FIX",
+        "candidate_id": candidate.get("candidate_id"),
+        "candidate_hash": candidate.get("candidate_hash"),
+        "state": "MERGED",
+        "timestamp": candidate.get("timestamp"),
+        "merged_by": candidate.get("merged_by", "human"),
+
+        # Preserved evidence fields for retrieval compatibility.
+        "category": candidate.get("category", ""),
+        "file": candidate.get("file", ""),
+        "advisory": candidate.get("advisory", ""),
+        "fix_diff": candidate.get("fix_diff", ""),
+        "forensic_summary": candidate.get("forensic_summary", ""),
+    }
+
+    return append_unique(
+        Path(proven_fixes_path),
+        record,
+    )
+
+def compute_applied_fix_count(ledger_entries: list) -> int:
+    """Scorecard counts only terminal MERGED entries."""
+    return sum(1 for entry in ledger_entries if entry.get("state") == "MERGED")
