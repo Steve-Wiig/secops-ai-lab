@@ -50,6 +50,8 @@ from engine.development_worker_dispatch import (
 ROOT = Path(__file__).resolve().parent.parent
 QUEUE_DIR = ROOT / "overnight" / "advisory_queue" / "pending"
 FIX_BACKLOG = ROOT / "overnight" / "fix_backlog.json"
+DEAD_LETTER_BACKLOG = ROOT / "overnight" / "fix_backlog_deadletter.json"
+MAX_FIX_RETRIES = 3  # After 3 failures, dead-letter the item
 DEFERRED_BACKLOG = ROOT / "overnight" / "fix_backlog_deferred.json"
 LESSONS_FILE = ROOT / "overnight" / "lessons_learned.json"
 
@@ -1942,6 +1944,9 @@ def drain_fix_backlog(api_keys, max_fixes=3):
 def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
     """Actually process and apply fixes from fix_backlog.json."""
     print(f"BACKLOG DRAIN MODE ({fixes_per_pass} fixes/pass)")
+
+    consecutive_pass_failures = 0
+    MAX_CONSECUTIVE_PASS_FAILURES = 3  # Stop after 3 passes with 0 applied
     
     for pass_num in range(1, 101):
         # 1. Pull new items from Redis into the local JSON
@@ -1962,6 +1967,21 @@ def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
         
         for i, item in enumerate(backlog[:fixes_per_pass]):
             try:
+                # Track retry count to prevent infinite loops
+                retry_count = item.get("_retry_count", 0)
+
+                # Dead-letter items that have failed too many times
+                if retry_count >= MAX_FIX_RETRIES:
+                    print(f"       💀 Item exceeded {MAX_FIX_RETRIES} retries. Dead-lettering.")
+                    dead_letter = _load_json(DEAD_LETTER_BACKLOG)
+                    if not isinstance(dead_letter, list):
+                        dead_letter = []
+                    item["_dead_letter_reason"] = f"Exceeded {MAX_FIX_RETRIES} retries"
+                    item["_dead_letter_time"] = datetime.now().isoformat()
+                    dead_letter.append(item)
+                    _save_json(DEAD_LETTER_BACKLOG, dead_letter)
+                    continue
+
                 file_path_str = item.get("file", "")
                 issue = item.get("issue", {})
                 advisory_fingerprint = item.get("advisory_fingerprint", None)
@@ -1971,6 +1991,19 @@ def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
                     continue
                 
                 file_path = ROOT / file_path_str
+
+                # Dead-letter items with missing files (don't waste API calls)
+                if not file_path.exists():
+                    print(f"       💀 File {file_path_str} does not exist. Dead-lettering.")
+                    dead_letter = _load_json(DEAD_LETTER_BACKLOG)
+                    if not isinstance(dead_letter, list):
+                        dead_letter = []
+                    item["_dead_letter_reason"] = "File does not exist"
+                    item["_dead_letter_time"] = datetime.now().isoformat()
+                    dead_letter.append(item)
+                    _save_json(DEAD_LETTER_BACKLOG, dead_letter)
+                    continue
+
                 if not file_path.exists():
                     remaining.append(item)
                     continue
@@ -1995,7 +2028,19 @@ def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
                     
             except Exception as e:
                 print(f"       ❌ Error processing fix: {e}")
-                remaining.append(item)
+                # Increment retry count instead of blindly re-queuing
+                item["_retry_count"] = item.get("_retry_count", 0) + 1
+                if item["_retry_count"] >= MAX_FIX_RETRIES:
+                    print(f"       💀 Max retries reached. Dead-lettering item.")
+                    dead_letter = _load_json(DEAD_LETTER_BACKLOG)
+                    if not isinstance(dead_letter, list):
+                        dead_letter = []
+                    item["_dead_letter_reason"] = str(e)
+                    item["_dead_letter_time"] = datetime.now().isoformat()
+                    dead_letter.append(item)
+                    _save_json(DEAD_LETTER_BACKLOG, dead_letter)
+                else:
+                    remaining.append(item)
         
         # 4. Add unprocessed items back to remaining
         remaining.extend(backlog[fixes_per_pass:])
