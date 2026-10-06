@@ -2,3 +2,8 @@
 tools/external_credential_permission_check.py
 ./engine/investigation_controller.py
 ./tools/hash_chain_verify.py
+./engine/model_registry.py
+
+./engine/aider_development_worker.py  # Skipped: >30k chars, causes free-tier rate-limit exhaustion
+./engine/writeback/wazuh_proposals.py  # Skipped: >30k chars, causes free-tier rate-limit exhaustion
+./overnight/code_reviewer.py  # Skipped: >30k chars, causes free-tier rate-limit exhaustion

@@ -876,7 +876,7 @@ def _original_generate(prompt, api_keys, model_type="code", max_tokens=8192, tem
         return ""
 
     print("    ⏳ OpenRouter, Groq, and Mistral busy. Waiting 30s...")
-    time.sleep(30)
+    time.sleep(65) # Increased to clear per-minute limits
 
     result = _call_openrouter(
         prompt,
