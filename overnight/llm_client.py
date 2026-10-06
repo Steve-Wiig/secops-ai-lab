@@ -96,8 +96,8 @@ def _budget_record(provider):
     try:
         from overnight.budget_manager import APIBudgetManager
         APIBudgetManager().record_call(provider)
-    except Exception:
-        pass
+    except Exception as e:
+            print(f"[WARN] Suppressed exception in overnight/llm_client.py: {e}", file=__import__("sys").stderr)
 
 
 def _budget_allow(provider, model=None):
@@ -585,8 +585,8 @@ def _groq_note_rl(model, headers):
         st = headers.get("x-ratelimit-reset-tokens")
         if sr: e["req_reset"] = now + _parse_dur(sr)
         if st: e["tok_reset"] = now + _parse_dur(st)
-    except Exception:
-        pass
+    except Exception as e:
+            print(f"[WARN] Suppressed exception in overnight/llm_client.py: {e}", file=__import__("sys").stderr)
 
 
 def _groq_preempted(model):
@@ -826,8 +826,8 @@ def _original_generate(prompt, api_keys, model_type="code", max_tokens=8192, tem
         try:
             from engine.reasoning_ledger import record_interaction
             record_interaction("heavy_generation", prompt, result, provider)
-        except Exception:
-            pass
+        except Exception as e:
+                print(f"[WARN] Suppressed exception in overnight/llm_client.py: {e}", file=__import__("sys").stderr)
         return result
 
     result = _call_openrouter(

@@ -583,7 +583,7 @@ def run_aider_worker(
                     import threading
                     import time
 
-                    output_queue = queue.Queue()
+                    output_queue = queue.Queue(maxsize=1000)
                     output_lines = []
 
                     def read_output():

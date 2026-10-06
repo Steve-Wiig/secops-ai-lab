@@ -626,16 +626,16 @@ def _load_forensic_cache() -> dict:
     try:
         if _FORENSIC_CACHE_PATH.exists():
             return json.loads(_FORENSIC_CACHE_PATH.read_text())
-    except Exception:
-        pass
+    except Exception as e:
+            print(f"[WARN] Suppressed exception in overnight/self_improver.py: {e}", file=__import__("sys").stderr)
     return {}
 
 def _save_forensic_cache(cache: dict) -> None:
     """Persist the forensic analysis cache to disk."""
     try:
         _FORENSIC_CACHE_PATH.write_text(json.dumps(cache, indent=2))
-    except Exception:
-        pass  # Non-blocking
+    except Exception as e:
+            print(f"[WARN] Suppressed exception in overnight/self_improver.py: {e}", file=__import__("sys").stderr)  # Non-blocking
 
 def _forensic_cache_key(source_code: str, issue_desc: str) -> str:
     """Generate a deterministic cache key from source hash + issue description."""
