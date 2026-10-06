@@ -1940,38 +1940,81 @@ def drain_fix_backlog(api_keys, max_fixes=3):
     return len(redis_items)
 
 def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
+    """Actually process and apply fixes from fix_backlog.json."""
     print(f"BACKLOG DRAIN MODE ({fixes_per_pass} fixes/pass)")
+    
     for pass_num in range(1, 101):
-        # 1. Pull from Redis first
+        # 1. Pull new items from Redis into the local JSON
         transferred = drain_fix_backlog(api_keys, max_fixes=fixes_per_pass)
         
-        # 2. Check if we have any work to do in the local JSON
-        local_backlog = _load_json(FIX_BACKLOG)
-        if not local_backlog:
+        # 2. Load the current backlog
+        backlog = _load_json(FIX_BACKLOG)
+        if not backlog:
             print("🔧 No fixes in local backlog. Stopping drain.")
             break
-            
-        print(f"\n[Pass {pass_num}] {len(local_backlog)} fixes remaining...")
         
-        # 3. Process the backlog (this is where patches are actually generated/applied)
-        size_before = len(local_backlog)
-        triage_backlog()
-        size_after = len(_load_json(FIX_BACKLOG))
+        print(f"\n[Pass {pass_num}] {len(backlog)} fixes remaining...")
+        size_before = len(backlog)
         
-        # 4. Calculate actual progress (items removed from JSON by triage_backlog)
-        applied = size_before - size_after
-        print(f"🔧 Pass {pass_num}: {applied} applied, {transferred} transferred from Redis")
+        # 3. ACTUALLY PROCESS the backlog items
+        applied_count = 0
+        remaining = []
         
-        # 5. Only break if we made NO progress at all (prevents infinite loops)
-        if applied == 0 and transferred == 0:
-            print("🔧 No progress made. Stopping drain to prevent infinite loop.")
+        for i, item in enumerate(backlog[:fixes_per_pass]):
+            try:
+                file_path_str = item.get("file", "")
+                issue = item.get("issue", {})
+                advisory_fingerprint = item.get("advisory_fingerprint", None)
+                
+                if not file_path_str or not issue:
+                    remaining.append(item)
+                    continue
+                
+                file_path = ROOT / file_path_str
+                if not file_path.exists():
+                    remaining.append(item)
+                    continue
+                
+                print(f"  [{i+1}/{min(len(backlog), fixes_per_pass)}] 🔧 Fixing {file_path_str}...")
+                
+                # Call the ACTUAL fix function (apply_auto_fix, not _auto_fix_item)
+                result = apply_auto_fix(
+                    file_path=file_path,
+                    issue=issue,
+                    api_keys=api_keys,
+                    advisory_fingerprint=advisory_fingerprint,
+                )
+                
+                # Check if the fix was actually applied
+                if result is True or (hasattr(result, 'applied') and result.applied):
+                    applied_count += 1
+                    print(f"       ✅ Fix applied successfully")
+                else:
+                    # Keep failed items for retry
+                    remaining.append(item)
+                    
+            except Exception as e:
+                print(f"       ❌ Error processing fix: {e}")
+                remaining.append(item)
+        
+        # 4. Add unprocessed items back to remaining
+        remaining.extend(backlog[fixes_per_pass:])
+        
+        # 5. Save the updated backlog
+        _save_json(FIX_BACKLOG, remaining)
+        
+        size_after = len(remaining)
+        actually_removed = size_before - size_after
+        
+        print(f"🔧 Pass {pass_num}: {applied_count} applied, {actually_removed} removed from backlog, {transferred} transferred from Redis")
+        
+        # 6. Break if no progress
+        if applied_count == 0 and transferred == 0:
+            print("🔧 No progress made. Stopping drain.")
             break
-            
+        
         time.sleep(15)
 
-# ============================================================
-# ADVISORY GENERATION & B (GEMINI / OPENROUTER)
-# ============================================================
 def prefill_advisory_queue(files, api_keys, budget):
     QUEUE_DIR.mkdir(parents=True, exist_ok=True)
 
