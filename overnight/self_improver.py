@@ -1915,7 +1915,7 @@ def is_duplicate(item):
     return False
 
 def drain_fix_backlog(api_keys, max_fixes=3):
-    return 0  # AUTOPILOT BYPASS: Function dependencies missing
+    # STUB REMOVED: Restoring actual drain logic
 
     # --- AUTOPILOT REDIS WIRING ---
     # Pull all queued fixes from Redis into the local backlog list

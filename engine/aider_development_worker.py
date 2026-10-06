@@ -376,17 +376,17 @@ def run_aider_worker(
 ) -> AiderWorkerResult:
     """Run Aider as a bounded, non-committing implementation worker."""
 
-    # PHASE 1: SCOPE SHRINKER CHOKE POINT
-    # Force all Aider tasks to be tiny and verifiable to increase success rate.
+    # PHASE 1: SCOPED FIX MODE (relaxed from strict Scope Shrinker)
+    # Allow focused, single-issue fixes while preventing massive rewrites.
     scope_shrinker_directive = (
-        "\n\n[SYSTEM DIRECTIVE: SCOPE SHRINKER MODE]\n"
-        "You are operating in strict Scope Shrinker mode. "
-        "You must ONLY make one of the following tiny, verifiable changes:\n"
-        "1. Add a missing docstring to a function or class.\n"
-        "2. Add type hints to function arguments or return values.\n"
-        "3. Extract a hardcoded string/number into a module-level constant.\n"
-        "DO NOT refactor logic, DO NOT fix complex bugs, DO NOT change imports, DO NOT rewrite functions.\n"
-        "If the file does not need one of these 3 specific changes, make NO CHANGES and output a message saying so.\n"
+        "\n\n[SYSTEM DIRECTIVE: FOCUSED FIX MODE]\n"
+        "You must make ONLY the specific fix requested in the issue description below.\n"
+        "Rules:\n"
+        "1. Fix ONLY the one issue described. Do not refactor unrelated code.\n"
+        "2. Keep changes minimal and focused on the described problem.\n"
+        "3. Preserve existing imports, function signatures, and module structure.\n"
+        "4. If the fix requires changing more than 30 lines, make the minimal version.\n"
+        "5. If you cannot make a safe, minimal fix, make NO CHANGES.\n"
         "----------------------------------------------------------------\n\n"
     )
     prompt = scope_shrinker_directive + prompt
