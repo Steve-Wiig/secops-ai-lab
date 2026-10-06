@@ -2008,7 +2008,17 @@ def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
         
         print(f"🔧 Pass {pass_num}: {applied_count} applied, {actually_removed} removed from backlog, {transferred} transferred from Redis")
         
-        # 6. Break if no progress
+        # 6. Circuit breaker: track consecutive empty passes
+        if applied_count == 0:
+            consecutive_pass_failures += 1
+        else:
+            consecutive_pass_failures = 0  # Reset on success
+        
+        if consecutive_pass_failures >= MAX_CONSECUTIVE_PASS_FAILURES:
+            print(f"🛑 CIRCUIT BREAKER: {MAX_CONSECUTIVE_PASS_FAILURES} consecutive passes with 0 applied.")
+            print("   Stopping drain to prevent API budget waste.")
+            break
+        
         if applied_count == 0 and transferred == 0:
             print("🔧 No progress made. Stopping drain.")
             break
