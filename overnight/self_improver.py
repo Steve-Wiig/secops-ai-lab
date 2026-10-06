@@ -1915,18 +1915,29 @@ def is_duplicate(item):
     return False
 
 def drain_fix_backlog(api_keys, max_fixes=3):
-    # STUB REMOVED: Restoring actual drain logic
-
-    # --- AUTOPILOT REDIS WIRING ---
-    # Pull all queued fixes from Redis into the local backlog list
-    backlog = []
+    """Bridge: Pull fixes from Redis and write them to the local FIX_BACKLOG JSON."""
+    redis_items = []
     while True:
         _item = swarm_state.pop_from_backlog()
         if not _item:
             break
-        backlog.append(_item)
-    print(f"📥 Pulled {len(backlog)} fixes from Redis backlog.")
-    # --------------------------------
+        redis_items.append(_item)
+        
+    if not redis_items:
+        return 0
+        
+    print(f"📥 Pulled {len(redis_items)} fixes from Redis backlog.")
+    
+    # Bridge: Add them to the local FIX_BACKLOG so the drain loop can process them
+    local_backlog = _load_json(FIX_BACKLOG)
+    if not isinstance(local_backlog, list):
+        local_backlog = []
+        
+    local_backlog.extend(redis_items)
+    _save_json(FIX_BACKLOG, local_backlog)
+    
+    # Return the number of items transferred so the loop knows work was done
+    return len(redis_items)
 
 def drain_backlog_loop(api_keys, budget, state, fixes_per_pass=4):
     print(f"BACKLOG DRAIN MODE ({fixes_per_pass} fixes/pass)")
