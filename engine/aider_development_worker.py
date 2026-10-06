@@ -376,6 +376,22 @@ def run_aider_worker(
 ) -> AiderWorkerResult:
     """Run Aider as a bounded, non-committing implementation worker."""
 
+    # PHASE 1: SCOPE SHRINKER CHOKE POINT
+    # Force all Aider tasks to be tiny and verifiable to increase success rate.
+    scope_shrinker_directive = (
+        "\n\n[SYSTEM DIRECTIVE: SCOPE SHRINKER MODE]\n"
+        "You are operating in strict Scope Shrinker mode. "
+        "You must ONLY make one of the following tiny, verifiable changes:\n"
+        "1. Add a missing docstring to a function or class.\n"
+        "2. Add type hints to function arguments or return values.\n"
+        "3. Extract a hardcoded string/number into a module-level constant.\n"
+        "DO NOT refactor logic, DO NOT fix complex bugs, DO NOT change imports, DO NOT rewrite functions.\n"
+        "If the file does not need one of these 3 specific changes, make NO CHANGES and output a message saying so.\n"
+        "----------------------------------------------------------------\n\n"
+    )
+    prompt = scope_shrinker_directive + prompt
+
+
     if not prompt or not prompt.strip():
         return AiderWorkerResult(
             success=False,
