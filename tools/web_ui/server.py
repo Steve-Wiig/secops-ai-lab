@@ -237,3 +237,212 @@ async def stream_logs():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+# ============================================================================
+# UNIFIED STATUS API - Real-time system telemetry
+# ============================================================================
+
+import os
+import json
+import subprocess
+import urllib.request
+from pathlib import Path
+from datetime import datetime
+
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
+
+def get_system_status():
+    """Returns a comprehensive, real-time snapshot of the autopilot system."""
+    
+    ROOT = Path(__file__).parent.parent if 'tools' in str(Path(__file__)) else Path(__file__).parent
+    
+    status = {
+        "timestamp": datetime.now().isoformat(),
+        "queues": {},
+        "workers": {},
+        "api_budget": {},
+        "backlog": {},
+        "processes": {}
+    }
+
+    # 1. REDIS QUEUE STATUS
+    if REDIS_AVAILABLE:
+        try:
+            redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+            redis_client.ping()
+            
+            status["queues"] = {
+                "swarm_backlog": redis_client.llen("soc_autopilot:swarm:backlog") or 0,
+                "pi_patches": redis_client.llen("soc_autopilot:pi_patches") or 0,
+                "tdd_eval": redis_client.llen("soc_autopilot:tdd_eval_queue") or 0,
+                "edge_review": redis_client.llen("soc_autopilot:edge_review") or 0
+            }
+            status["queues"]["status"] = "online"
+        except Exception as e:
+            status["queues"] = {"status": "offline", "error": str(e)}
+    else:
+        status["queues"] = {"status": "unavailable", "error": "redis module not installed"}
+
+    # 2. WORKER STATUS (Laptop, Pi, Phone)
+    workers = {}
+    
+    # Laptop (Local Ollama)
+    try:
+        req = urllib.request.Request("http://127.0.0.1:11434/api/ps", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.load(resp)
+            models = data.get("models", [])
+            workers["laptop_qwen7b"] = {
+                "status": "online",
+                "loaded_models": [f"{m['name']} ({m.get('size', 0)//(1024*1024)}MB)" for m in models],
+                "active": len(models) > 0
+            }
+    except Exception as e:
+        workers["laptop_qwen7b"] = {"status": "offline", "loaded_models": [], "active": False, "error": str(e)}
+
+    # Raspberry Pi (Remote Ollama)
+    try:
+        req = urllib.request.Request("http://192.168.1.31:11434/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            data = json.load(resp)
+            workers["raspberry_pi"] = {
+                "status": "online",
+                "available_models": [m["name"] for m in data.get("models", [])]
+            }
+    except Exception as e:
+        workers["raspberry_pi"] = {"status": "offline", "available_models": [], "error": str(e)}
+
+    # Phone Worker (Placeholder)
+    workers["phone_worker"] = {
+        "status": "not_configured",
+        "note": "Add MQTT/HTTP health check here"
+    }
+    
+    status["workers"] = workers
+
+    # 3. PROCESS STATUS
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", "continuous_supervisor"],
+            capture_output=True, text=True, timeout=2
+        )
+        status["processes"]["supervisor"] = "running" if result.returncode == 0 else "stopped"
+    except:
+        status["processes"]["supervisor"] = "unknown"
+    
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", "self_improver"],
+            capture_output=True, text=True, timeout=2
+        )
+        status["processes"]["self_improver"] = "running" if result.returncode == 0 else "stopped"
+    except:
+        status["processes"]["self_improver"] = "unknown"
+    
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", "pi_generator"],
+            capture_output=True, text=True, timeout=2
+        )
+        status["processes"]["pi_generator"] = "running" if result.returncode == 0 else "stopped"
+    except:
+        status["processes"]["pi_generator"] = "unknown"
+
+    # 4. API BUDGET (From OpenRouter quota file)
+    quota_file = ROOT / "overnight" / "openrouter_quota.json"
+    if quota_file.exists():
+        try:
+            with open(quota_file) as f:
+                quota = json.load(f)
+                used = quota.get("day_count", 0)
+                status["api_budget"] = {
+                    "provider": "OpenRouter",
+                    "used_24h": used,
+                    "limit_24h": 500,
+                    "percentage": round((used / 500) * 100, 1),
+                    "status": "paused" if used >= 500 else "active"
+                }
+        except Exception as e:
+            status["api_budget"] = {"error": f"Could not parse quota file: {str(e)}"}
+    else:
+        status["api_budget"] = {"status": "unknown", "note": "Quota file not found"}
+
+    # 5. BACKLOG METRICS
+    backlog_file = ROOT / "overnight" / "fix_backlog.json"
+    deadletter_file = ROOT / "overnight" / "fix_backlog_deadletter.json"
+    
+    try:
+        with open(backlog_file) as f:
+            data = json.load(f)
+            status["backlog"]["pending"] = len(data) if isinstance(data, list) else 0
+    except Exception:
+        status["backlog"]["pending"] = 0
+        
+    try:
+        with open(deadletter_file) as f:
+            data = json.load(f)
+            status["backlog"]["dead_lettered"] = len(data) if isinstance(data, list) else 0
+    except Exception:
+        status["backlog"]["dead_lettered"] = 0
+
+    # 6. RECENT COMMITS (Last 10)
+    try:
+        result = subprocess.run(
+            ["git", "log", "--oneline", "-10"],
+            capture_output=True, text=True, timeout=2, cwd=ROOT
+        )
+        status["recent_commits"] = result.stdout.strip().split('\n') if result.returncode == 0 else []
+    except:
+        status["recent_commits"] = []
+
+    return status
+
+# ============================================================================
+# FASTAPI/FLASK ROUTE EXAMPLES (Uncomment based on your framework)
+# ============================================================================
+
+# For FastAPI:
+# from fastapi import FastAPI
+# app = FastAPI()
+# 
+# @app.get("/api/system-status")
+# def system_status():
+#     return get_system_status()
+
+# For Flask:
+# from flask import Flask, jsonify
+# app = Flask(__name__)
+# 
+# @app.route('/api/system-status')
+# def system_status():
+#     return jsonify(get_system_status())
+
+# For simple HTTP server (if no framework):
+# import http.server
+# import socketserver
+# 
+# class StatusHandler(http.server.SimpleHTTPRequestHandler):
+#     def do_GET(self):
+#         if self.path == '/api/system-status':
+#             self.send_response(200)
+#             self.send_header('Content-type', 'application/json')
+#             self.end_headers()
+#             self.wfile.write(json.dumps(get_system_status()).encode())
+#         else:
+#             super().do_GET()
+# 
+# PORT = 8080
+# with socketserver.TCPServer(("", PORT), StatusHandler) as httpd:
+#     print(f"Serving on port {PORT}")
+#     httpd.serve_forever()
+
+if __name__ == "__main__":
+    # Test the API
+    print(json.dumps(get_system_status(), indent=2))
+
+@app.get("/api/system-status")
+def system_status_endpoint():
+    return get_system_status()

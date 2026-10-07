@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Timestamp wrapper for all output
+exec > >(while read line; do echo "$(date "+%Y-%m-%d %H:%M:%S") | $line"; done) 2>&1
 set -u
 
 cd "$(dirname "$0")/.."
