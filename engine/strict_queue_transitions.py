@@ -1,7 +1,7 @@
 """
 P1-4 Queue Authority: Strict State Machine.
 Makes status transitions impossible to bypass.
-No caller should have to remember to call a safety gate first.
+No caller should have to call a safety gate first.
 """
 
 class StateTransitionViolation(Exception):
@@ -13,6 +13,7 @@ VALID_TRANSITIONS = {
     "completed": set(), # Terminal
     "failed": set(),    # Terminal
     "cancelled": set(), # Terminal
+    "shed": {"pending"}, # Load shedding: return to pending for retry
 }
 
 def authorize_transition(current_state: str, target_state: str, job_record: dict) -> bool:
@@ -31,10 +32,10 @@ def authorize_transition(current_state: str, target_state: str, job_record: dict
         
     # 2. Enforce P1-4 Invariant: CRITICAL jobs cannot reach terminal states without approval
     if target in ("completed", "failed"):
-        priority = str(job_record.get("priority", "normal")).upper()
+        priority = str(job_record.get("priority", "normal")).lower()
         approved = job_record.get("approval", {}).get("approved", False)
         
-        if priority == "CRITICAL" and not approved:
+        if priority == "critical" and not approved:
             raise StateTransitionViolation(
                 f"CRITICAL job cannot transition to '{target}' without explicit approval. "
                 f"Current approval state: {job_record.get('approval')}"
