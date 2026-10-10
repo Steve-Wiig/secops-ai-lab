@@ -31,7 +31,10 @@ SYSTEM_PROMPT = "You are an expert SOC/SIEM pipeline developer. Provide concise,
 
 @app.get("/", response_class=HTMLResponse)
 async def get_home():
-    return FileResponse(BASE_DIR / "tools" / "web_ui" / "index.html")
+    try:
+        return FileResponse(BASE_DIR / "tools" / "web_ui" / "index.html")
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": "Failed to serve dashboard", "details": str(e)})
 
 @app.get("/api/status")
 async def get_status():
