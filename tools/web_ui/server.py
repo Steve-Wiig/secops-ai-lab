@@ -216,8 +216,8 @@ async def chat(request: Request):
                 usage_data = json.loads(usage_file.read_text()) if usage_file.exists() else {"local_calls": 0, "total_credits": 0.0, "last_updated": 0}
                 usage_data["local_calls"] = usage_data.get("local_calls", 0) + 1
                 usage_file.write_text(json.dumps(usage_data, indent=4))
-            except Exception:
-                pass  # Fail silently on usage tracking so chat still works
+            except Exception as e:
+                print(f'Error in server: {e}')  # Fail silently on usage tracking so chat still works
 
         else:
             reply = "AI provider is currently overloaded. Please try again in a moment."
