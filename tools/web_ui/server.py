@@ -102,10 +102,20 @@ async def remove_backlog(request: Request):
     return []
 
 @app.get("/api/logs")
-async def get_logs():
-    log_file = BASE_DIR / "logs" / "swarm_systemd.log"
+async def get_logs(lines: int = 50):
+    """Return last N lines of swarm log efficiently."""
+    import collections
+    log_file = BASE_DIR / "overnight" / "continuous_supervisor.log"
+    if not log_file.exists():
+        # Fallback to dashboard log if swarm log missing
+        log_file = BASE_DIR / "tools" / "web_ui" / "dashboard.log"
     if log_file.exists():
-        return {"logs": log_file.read_text().splitlines()[-50:]}
+        try:
+            with open(log_file, 'r') as f:
+                tail_lines = list(collections.deque(f, maxlen=min(lines, 200)))
+            return {"logs": [l.rstrip(chr(10)) for l in tail_lines]}
+        except Exception as e:
+            return {"logs": [], "error": str(e)}
     return {"logs": []}
 
 @app.get("/api/logs/download")
