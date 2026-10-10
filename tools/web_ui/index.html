@@ -11,7 +11,7 @@
 </head>
 <body class="bg-gray-950 text-gray-200 min-h-screen flex flex-col">
     <div class="bg-red-500 text-white text-sm py-2 px-4 border-b border-red-200">VERSION 3.5 - AIDER REFACTORED</div>
-    <header class="bg-gray-900 border-b border-gray-800 p-4 shadow-lg sticky top-0 z-50">
+    <header class="bg-gray-900 text-white text-sm py-2 px-4 border-b border-gray-800 shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold text-green-400">🤖 SOC Autopilot <span class="text-gray-500 text-sm font-normal">v3.2</span></h1>
             <div class="flex gap-4 text-sm"><span>Backlog: <span id="header-backlog" class="text-blue-400 font-mono">0</span></span></div>
@@ -116,64 +116,50 @@
         </div>
     </main>
     <script>
-        function showTab(id) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => { 
-                el.classList.remove('active', 'text-white', 'border-green-400'); 
-                el.classList.add('text-gray-400', 'border-transparent'); 
-            });
-            document.getElementById(id).classList.add('active');
-            const btn = document.querySelector('.tab-btn[data-tab="'+id+'"]');
-            btn.classList.add('active', 'text-white', 'border-green-400');
-            btn.classList.remove('text-gray-400', 'border-transparent');
-            if (id === 'logs') fetchLogs();
-            if (id === 'settings') loadSettings();
-        }
-
+        // Dashboard update function fetching from /api/live-activity
         async function updateDashboard() {
             try {
-                const res = await fetch('/api/system-status?t=' + Date.now());
+                const res = await fetch('/api/live-activity?t=' + Date.now());
                 const data = await res.json();
-                const bl = data.backlog || {};
-                document.getElementById('header-backlog').innerText = bl.pending || 0;
-                const pr = data.processes || {};
-                document.getElementById('processes-list').innerHTML = Object.entries(pr).map(([k, v]) => 
-                    '<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0"><span class="text-gray-300">'+k.replace('_',' ').toUpperCase()+'</span><span class="text-xs font-mono '+ (v === 'running' ? 'text-green-400' : 'text-red-400')+'">● '+v.toUpperCase()+'</span></div>').join('');
-                const q = data.queues || {};
-                document.getElementById('queues-list').innerHTML = '<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0"><span class="text-gray-300">Swarm Backlog</span><span class="font-mono text-blue-400">'+(q.swarm_backlog || 0)+'</span></div><div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0"><span class="text-gray-300">PI Patches</span><span class="font-mono text-blue-400">'+(q.pi_patches || 0)+'</span></div>';
-                const w = data.workers || {};
-                let wh = '';
-                if (w.laptop_qwen7b) { const isOn = w.laptop_qwen7b.status === 'online'; wh += '<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0"><span class="text-gray-300">💻 Laptop</span><span class="text-xs font-mono '+ (isOn ? 'text-green-400' : 'text-red-400')+'">● '+ (isOn ? (w.laptop_qwen7b.loaded_models.join(', ') || 'Idle') : 'Offline')+'</span></div>'; }
-                if (w.raspberry_pi) { const isOn = w.raspberry_pi.status === 'online'; wh += '<div class="flex justify-between items-center py-1 border-b border-gray-800 last:border-0"><span class="text-gray-300">🍓 Pi</span><span class="text-xs font-mono '+ (isOn ? 'text-green-400' : 'text-red-400')+'">● '+ (isOn ? 'Online' : 'Offline')+'</span></div>'; }
-                document.getElementById('workers-list').innerHTML = wh;
-                document.getElementById('ai-worker-health').innerHTML = wh || '<div class="text-gray-500 text-sm">No workers configured.</div>';
-                const b = data.api_budget || {};
-                if (b.used_24h !== undefined) {
-                    const pct = Math.min(100, (b.used_24h / b.limit_24h) * 100);
-                    document.getElementById('api-usage').innerText = b.used_24h + ' / ' + b.limit_24h;
-                    const bar = document.getElementById('api-progress');
-                    bar.style.width = pct + '%';
-                    bar.className = 'h-2 rounded-full ' + (pct > 90 ? 'bg-red-500' : pct > 70 ? 'bg-yellow-500' : 'bg-green-500');
-                    const st = document.getElementById('api-status');
-                    st.className = 'text-xs font-mono ' + (b.status === 'paused' ? 'text-yellow-400' : 'text-green-400');
-                    st.innerHTML = '● ' + (b.status === 'paused' ? 'PAUSED' : 'ACTIVE');
-                }
-                document.getElementById('backlog-pending').innerText = bl.pending || 0;
-                document.getElementById('backlog-dead').innerText = bl.dead_lettered || 0;
-                document.getElementById('commits-list').innerHTML = (data.recent_commits || []).map(c => '<div class="text-gray-400 font-mono text-xs border-l-2 border-gray-700 pl-3 py-1">'+c+'</div>').join('') || '<div class="text-gray-500 text-sm">No recent commits.</div>';
-                const actRes = await fetch('/api/live-activity?t=' + Date.now());
-                const actData = await actRes.json();
-                document.getElementById('live-activity').innerHTML = (actData.activity || []).map(a => {
+                
+                // Update live activity section
+                const liveActivityDiv = document.getElementById('live-activity');
+                const actData = data.activity || [];
+                liveActivityDiv.innerHTML = actData.map(a => {
                     let cls = 'text-gray-400';
                     if (a.includes('✅') || a.includes('disk modified')) cls = 'text-green-400';
                     else if (a.includes('💀') || a.includes('❌') || a.includes('REJECTED')) cls = 'text-red-400';
                     else if (a.includes('🔧 Fixing')) cls = 'text-blue-400';
                     else if (a.includes('Pass')) cls = 'text-yellow-400 font-bold';
-                    return '<div class="'+cls+'">'+a+'</div>';
+                    return '<div class="' + cls + '">' + a + '</div>';
                 }).join('') || '<div class="text-gray-500">Waiting for activity...</div>';
-            } catch(e) { console.error(e); }
+                
+                // Schedule next update
+                setTimeout(updateDashboard, 5000);
+            } catch(e) {
+                console.error('Error fetching live activity:', e);
+                setTimeout(updateDashboard, 5000);
+            }
         }
-
+        
+        // Tab switching functionality
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active', 'text-white', 'border-green-400');
+                el.classList.add('text-gray-400', 'border-transparent');
+            });
+            document.getElementById(id).classList.add('active');
+            const btn = document.querySelector('.tab-btn[data-tab="' + id + '"]');
+            if (btn) {
+                btn.classList.add('active', 'text-white', 'border-green-400');
+                btn.classList.remove('text-gray-400', 'border-transparent');
+            }
+            if (id === 'logs') fetchLogs();
+            if (id === 'settings') loadSettings();
+        }
+        
+        // Log fetching (fetches from /api/logs)
         async function fetchLogs() {
             const el = document.getElementById('log-output');
             const filter = document.getElementById('log-filter').value.toLowerCase();
@@ -188,12 +174,13 @@
                              .replace(/(✅|Fix applied|disk modified)/g, '<span class="text-green-400">$1</span>')
                              .replace(/(💀|Dead-letter|Error|FAILED|REJECTED)/g, '<span class="text-red-400">$1</span>')
                              .replace(/(⚠️|WARNING|stale|PAUSED)/g, '<span class="text-yellow-400">$1</span>');
-                    return '<div class="log-line">'+f+'</div>';
+                    return '<div class="log-line">' + f + '</div>';
                 }).join('');
                 el.scrollTop = el.scrollHeight;
             } catch(e) { el.innerText = "Failed to load logs."; }
         }
-
+        
+        // Settings loading (fetches from /api/settings)
         async function loadSettings() {
             try {
                 const res = await fetch('/api/settings?t=' + Date.now());
@@ -203,13 +190,24 @@
                 document.getElementById('worker-select').value = data.primary_worker || 'laptop';
             } catch(e) {}
         }
+        
+        // Settings saving (posts to /api/settings)
         async function saveSettings() {
             const btn = event.target;
             const orig = btn.innerText;
             btn.innerText = "Saving & Restarting...";
             btn.disabled = true;
             try {
-                const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fixes_per_pass: parseInt(document.getElementById('fixes-per-pass').value), max_retries: parseInt(document.getElementById('max-retries').value), primary_worker: document.getElementById('worker-select').value, local_model: 'qwen2.5-coder:7b' }) });
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        fixes_per_pass: parseInt(document.getElementById('fixes-per-pass').value),
+                        max_retries: parseInt(document.getElementById('max-retries').value),
+                        primary_worker: document.getElementById('worker-select').value,
+                        local_model: 'qwen2.5-coder:7b' 
+                    })
+                });
                 const data = await res.json();
                 if (data.status === 'success') {
                     alert("✅ Saved! Swarm is restarting.");
@@ -217,6 +215,8 @@
             } catch(e) { alert("Failed: " + e); }
             finally { btn.innerText = orig; btn.disabled = false; }
         }
+        
+        // Initialization
         showTab('swarm');
         updateDashboard();
         setInterval(updateDashboard, 5000);
