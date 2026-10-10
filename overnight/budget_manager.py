@@ -24,8 +24,8 @@ CLI:
 import json
 import os
 import time
+import threading
 from collections import deque
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
 import fcntl
@@ -88,21 +88,19 @@ class APIBudgetManager:
         self.usage_file = Path(usage_file) if usage_file else USAGE_FILE
         self.lock_file = Path(lock_file) if lock_file else LOCK_FILE
         self._usage = self._load_usage()
+        self._lock = threading.RLock()
 
     # ============================================================
     # PERSISTENCE
     # ============================================================
     def _load_usage(self) -> Dict:
-        """Load usage history from disk."""
+        """Load usage history from disk. Timestamps stored as monotonic floats."""
         if self.usage_file.exists():
             try:
                 data = json.loads(self.usage_file.read_text())
-                # Convert lists back to deques with datetime objects
                 usage = {}
                 for provider, timestamps in data.items():
-                    usage[provider] = deque(
-                        datetime.fromisoformat(ts) for ts in timestamps
-                    )
+                    usage[provider] = deque(timestamps)  # floats from time.monotonic()
                 return usage
             except (json.JSONDecodeError, ValueError):
                 pass
@@ -113,82 +111,78 @@ class APIBudgetManager:
         self.usage_file.parent.mkdir(parents=True, exist_ok=True)
         data = {}
         for provider, timestamps in self._usage.items():
-            data[provider] = [ts.isoformat() for ts in timestamps]
+            data[provider] = list(timestamps)  # list of monotonic floats
         self.usage_file.write_text(json.dumps(data, indent=2))
 
     # ============================================================
     # USAGE TRACKING
     # ============================================================
     def _cleanup_old(self, provider: str):
-        """Remove timestamps older than 24 hours."""
-        cutoff = datetime.now() - timedelta(hours=24)
-        usage = self._usage.get(provider, deque())
-        while usage and usage[0] < cutoff:
-            usage.popleft()
-        self._usage[provider] = usage
+        """Remove timestamps older than 24 hours using monotonic clock."""
+        with self._lock:
+            cutoff = time.monotonic() - 24 * 3600
+            usage = self._usage.get(provider, deque())
+            while usage and usage[0] < cutoff:
+                usage.popleft()
+            self._usage[provider] = usage
 
     def reserve_call(self, provider: str, model: str = None) -> bool:
-        """Atomically admit and consume one API-call budget slot.
-
-        This is the authoritative admission primitive for concurrent
-        automation. The reservation is written before the external request,
-        so concurrent workers cannot both consume the same final slot.
-
-        A reservation represents an attempted external API call and therefore
-        remains counted even when the provider later returns an error.
-        """
+        """Atomically admit and consume one API-call budget slot."""
         self.usage_file.parent.mkdir(parents=True, exist_ok=True)
 
         with self.lock_file.open("a+") as lock_handle:
             fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
             try:
-                # Refresh state while holding the process-wide lock.
-                self._usage = self._load_usage()
+                with self._lock:
+                    self._usage = self._load_usage()
 
-                if provider == "groq":
-                    allowed = self.can_proceed_model_aware(provider, model)
-                else:
-                    allowed = self.can_proceed(provider)
+                    if provider == "groq":
+                        allowed = self.can_proceed_model_aware(provider, model)
+                    else:
+                        allowed = self.can_proceed(provider)
 
-                if not allowed:
-                    return False
+                    if not allowed:
+                        return False
 
-                if provider not in self._usage:
-                    self._usage[provider] = deque()
+                    if provider not in self._usage:
+                        self._usage[provider] = deque()
 
-                self._cleanup_old(provider)
-                self._usage[provider].append(datetime.now())
-                self._save_usage()
-                return True
+                    self._cleanup_old(provider)
+                    self._usage[provider].append(time.monotonic())
+                    self._save_usage()
+                    return True
             finally:
                 fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
 
     def record_call(self, provider: str):
         """Record a single API call."""
-        self._cleanup_old(provider)
-        if provider not in self._usage:
-            self._usage[provider] = deque()
-        self._usage[provider].append(datetime.now())
-        self._save_usage()
+        with self._lock:
+            self._cleanup_old(provider)
+            if provider not in self._usage:
+                self._usage[provider] = deque()
+            self._usage[provider].append(time.monotonic())
+            self._save_usage()
 
     def _count_in_window(self, provider: str, window_minutes: int) -> int:
-        """Count calls within the last N minutes."""
-        self._cleanup_old(provider)
-        cutoff = datetime.now() - timedelta(minutes=window_minutes)
-        usage = self._usage.get(provider, deque())
-        return sum(1 for ts in usage if ts >= cutoff)
+        """Count calls within the last N minutes using monotonic clock."""
+        with self._lock:
+            self._cleanup_old(provider)
+            cutoff = time.monotonic() - window_minutes * 60
+            usage = self._usage.get(provider, deque())
+            return sum(1 for ts in usage if ts >= cutoff)
 
     # ============================================================
     # BUDGET CHECKS
     # ============================================================
     def get_usage(self, provider: str) -> Dict[str, int]:
         """Get current usage counts for all windows."""
-        self._cleanup_old(provider)
-        return {
-            "last_minute": self._count_in_window(provider, 1),
-            "last_hour": self._count_in_window(provider, 60),
-            "last_day": self._count_in_window(provider, 1440),
-        }
+        with self._lock:
+            self._cleanup_old(provider)
+            return {
+                "last_minute": self._count_in_window(provider, 1),
+                "last_hour": self._count_in_window(provider, 60),
+                "last_day": self._count_in_window(provider, 1440),
+            }
 
     def _effective_limit(self, value: int) -> int:
         """Return enforcement limit after safety margin."""
@@ -217,11 +211,7 @@ class APIBudgetManager:
         }
 
     def get_limits_for_model(self, model: str = None) -> Dict:
-        """Get rate limits for a specific Groq model.
-        
-        groq/compound and groq/compound-mini: 250 RPD
-        gpt-oss-*, qwen3.6: 1000 RPD
-        """
+        """Get rate limits for a specific Groq model."""
         if model and 'groq/compound' in model:
             return self.limits.get('groq', self.limits['groq'])
         elif model and ('gpt-oss' in model or 'qwen' in model):
@@ -234,24 +224,24 @@ class APIBudgetManager:
         if provider != 'groq':
             return self.can_proceed(provider)
         
-        now = datetime.now()
+        now = time.monotonic()
         calls = list(self._usage.get(provider, deque()))
         limits = self.get_limits_for_model(model)
         
         # Check per-minute
-        minute_cutoff = now - timedelta(minutes=1)
+        minute_cutoff = now - 60
         minute_calls = [c for c in calls if c > minute_cutoff]
         if len(minute_calls) >= self._effective_limit(limits['per_minute']):
             return False
         
         # Check per-hour
-        hour_cutoff = now - timedelta(hours=1)
+        hour_cutoff = now - 3600
         hour_calls = [c for c in calls if c > hour_cutoff]
         if len(hour_calls) >= self._effective_limit(limits['per_hour']):
             return False
         
         # Check per-day
-        day_cutoff = now - timedelta(hours=24)
+        day_cutoff = now - 86400
         day_calls = [c for c in calls if c > day_cutoff]
         if len(day_calls) >= self._effective_limit(limits['per_day']):
             return False
@@ -262,9 +252,10 @@ class APIBudgetManager:
         """Model-aware precise wait for Groq; delegates for other providers."""
         if provider != "groq":
             return self.wait_if_needed(provider, timeout)
-        import time
+        import time as time_mod
         waited = 0.0
         limits = self.get_limits_for_model(model)
+        
         while waited < timeout:
             if self.can_proceed_model_aware(provider, model):
                 return True
@@ -277,41 +268,41 @@ class APIBudgetManager:
             sleep_time = min(full) if full else 1.0
             sleep_time = min(sleep_time, max(0.5, timeout - waited))
             print(f"  ⏱️  [groq/{model or 'any'}] rate window full — sleeping {sleep_time:.1f}s")
-            time.sleep(sleep_time)
+            time_mod.sleep(sleep_time)
             waited += sleep_time
         return False
     def can_proceed(self, provider: str) -> bool:
         """Check if we can make another call without exceeding limits."""
-        usage = self.get_usage(provider)
-        limits = self.limits.get(provider, {})
+        with self._lock:
+            usage = self.get_usage(provider)
+            limits = self.limits.get(provider, {})
 
-        for window, key in [
-            ("per_minute", "last_minute"),
-            ("per_hour", "last_hour"),
-            ("per_day", "last_day"),
-        ]:
-            limit = limits.get(window, float("inf"))
-            current = usage[key]
-            threshold = self._effective_limit(limit)
-            if current >= threshold:
-                return False
+            for window, key in [
+                ("per_minute", "last_minute"),
+                ("per_hour", "last_hour"),
+                ("per_day", "last_day"),
+            ]:
+                limit = limits.get(window, float("inf"))
+                current = usage[key]
+                threshold = self._effective_limit(limit)
+                if current >= threshold:
+                    return False
 
-        return True
+            return True
 
     def _seconds_until_slot(self, provider, window_seconds, max_calls):
         """Exact seconds until a slot frees in a sliding window (0.0 if open)."""
-        now = datetime.now()
-        cutoff = now - timedelta(seconds=window_seconds)
+        now = time.monotonic()
+        cutoff = now - window_seconds
         stamps = [ts for ts in self._usage.get(provider, deque()) if ts > cutoff]
-        # Apply SAFETY_MARGIN to match can_proceed() threshold logic
         effective_max = int(max_calls * SAFETY_MARGIN)
         if len(stamps) < effective_max:
             return 0.0
         oldest = min(stamps)
-        return max(0.0, window_seconds - (now - oldest).total_seconds()) + 0.25
+        return max(0.0, window_seconds - (now - oldest)) + 0.25
     def wait_if_needed(self, provider: str, timeout: int = 120) -> bool:
         """Sleep precisely until a rate slot opens (no 1s polling spam)."""
-        import time
+        import time as time_mod
         waited = 0.0
         limits = self.limits.get(provider, self.limits.get("groq"))
         while waited < timeout:
@@ -326,17 +317,18 @@ class APIBudgetManager:
             sleep_time = min(full) if full else 1.0
             sleep_time = min(sleep_time, max(0.5, timeout - waited))
             print(f"  ⏱️  [{provider}] rate window full — sleeping {sleep_time:.1f}s until a slot opens")
-            time.sleep(sleep_time)
+            time_mod.sleep(sleep_time)
             waited += sleep_time
         return False
-    def _oldest_in_window(self, provider: str, window_minutes: int) -> Optional[datetime]:
+    def _oldest_in_window(self, provider: str, window_minutes: int) -> Optional[float]:
         """Get the oldest timestamp in the window."""
-        cutoff = datetime.now() - timedelta(minutes=window_minutes)
-        usage = self._usage.get(provider, deque())
-        for ts in usage:
-            if ts >= cutoff:
-                return ts
-        return None
+        with self._lock:
+            cutoff = time.monotonic() - window_minutes * 60
+            usage = self._usage.get(provider, deque())
+            for ts in usage:
+                if ts >= cutoff:
+                    return ts
+            return None
 
     # ============================================================
     # REPORTING
@@ -369,8 +361,9 @@ class APIBudgetManager:
 
     def reset(self):
         """Reset all usage counters."""
-        self._usage = {provider: deque() for provider in self.limits}
-        self._save_usage()
+        with self._lock:
+            self._usage = {provider: deque() for provider in self.limits}
+            self._save_usage()
 
 
 # ============================================================
