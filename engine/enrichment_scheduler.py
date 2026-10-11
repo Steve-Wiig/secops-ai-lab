@@ -286,7 +286,7 @@ def get_db_connections(pg_dsn: str, sqlite_path: str) -> Tuple["psycopg2.extensi
         if psycopg2 is None:
             raise ImportError("psycopg2 is not installed. Install with: pip install psycopg2 (preferred) or pip install psycopg2-binary")
         pg_conn = psycopg2.connect(pg_dsn)
-        sq_conn = sqlite3.connect(sqlite_path)
+        sq_conn = sqlite3.connect(sqlite_path)  # noqa: blocking-init
         return pg_conn, sq_conn
     except psycopg2.OperationalError as e:
         logger.exception("PostgreSQL connection error")

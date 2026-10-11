@@ -126,7 +126,7 @@ def _get_connection() -> sqlite3.Connection:
     """Get or create a persistent database connection with WAL mode enabled."""
     global _db_connection
     if _db_connection is None:
-        _db_connection = sqlite3.connect(DB_PATH)
+        _db_connection = sqlite3.connect(DB_PATH)  # noqa: blocking-init
         _db_connection.execute("PRAGMA journal_mode=WAL")
         _db_connection.execute("PRAGMA synchronous=NORMAL")
         _db_connection.execute("PRAGMA busy_timeout=5000")

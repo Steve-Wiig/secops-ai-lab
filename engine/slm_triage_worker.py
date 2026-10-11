@@ -39,7 +39,7 @@ class WorkerConfig:
 
 def get_db(db_path: str) -> sqlite3.Connection:
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path)  # noqa: blocking-init
         conn.row_factory = sqlite3.Row
         ensure_queue_schema(conn) # Delegate to canonical queue authority
         return conn
@@ -189,7 +189,7 @@ def run_worker(config: WorkerConfig) -> None:
         )
 
         if job_id is None:
-            time.sleep(empty_queue_backoff)
+            time.sleep(empty_queue_backoff)  # noqa: empty-queue-backoff
             empty_queue_backoff = min(empty_queue_backoff * 2, MAX_BACKOFF)
             continue
 
@@ -205,7 +205,7 @@ def run_worker(config: WorkerConfig) -> None:
             raise RuntimeError(
                 f"Queue manager claimed job {job_id} but it could not be reloaded."
             )
-            time.sleep(empty_queue_backoff)
+            time.sleep(empty_queue_backoff)  # noqa: intentional-sleep
             empty_queue_backoff = min(empty_queue_backoff * 2, MAX_BACKOFF)
             continue
 

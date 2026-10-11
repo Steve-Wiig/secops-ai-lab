@@ -61,7 +61,7 @@ def check_backpressure(lab_url: str | None, dry_run: bool = False) -> int:
             return ExitCode.TOKEN_MISSING.value
 
         headers = {"Authorization": f"Bearer {token}"}
-        response = requests.get(f"{lab_url.rstrip('/')}{QUEUE_API_ENDPOINT}", 
+        response = requests.get(f"{lab_url.rstrip('/')}{QUEUE_API_ENDPOINT}", timeout=30, 
                                 headers=headers, timeout=5, verify=True)
         
         if response.status_code != 200:

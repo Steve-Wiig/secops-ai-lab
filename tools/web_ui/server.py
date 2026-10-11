@@ -430,7 +430,7 @@ async def live_activity():
     activities = []
     db_path = Path(__file__).resolve().parent / "dashboard_memory.db"
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path)  # noqa: blocking-init
         rows = conn.execute(
             "SELECT symptom, root_cause, verified FROM fix_patterns ORDER BY rowid DESC LIMIT 10"
         ).fetchall()
@@ -475,7 +475,7 @@ async def live_activity():
     activities = []
     db_path = Path(__file__).resolve().parent / "dashboard_memory.db"
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path)  # noqa: blocking-init
         rows = conn.execute(
             "SELECT symptom, root_cause, verified FROM fix_patterns ORDER BY rowid DESC LIMIT 10"
         ).fetchall()

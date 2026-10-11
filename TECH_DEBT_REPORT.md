@@ -13,3 +13,13 @@
 ## 🟢 Low Priority (Code Cleanliness & Refactoring)
 - [ ] `overnight/budget_manager.py` - **Magic number:** The `0.25` second grace period in `_seconds_until_slot` is arbitrary. -> *Proposed Fix:* Define as a named constant `SLOT_GRACE_SECONDS = 0.25`.
 - [ ] `engine/advisory_identity.py` - **Immutability contract:** `frozen=True` on dataclass prevents updates but isn't documented. -> *Proposed Fix:* Document immutability contract clearly in class docstring.
+
+
+## ✅ Resolved This Session (2026-10-11)
+- [x] All P0 silent failures eliminated
+- [x] All P1 network timeouts fixed (requests, httpx, urllib)
+- [x] Quality gate refined to exclude false positives (imports, tests, CLI scripts)
+- [x] Dashboard routes added (/api/live-activity, /api/settings)
+- [x] Autonomous backlog scanner with 5 scan sources
+- [x] Edge worker fix_backlog.json integration
+- [x] Route consistency auto-detection

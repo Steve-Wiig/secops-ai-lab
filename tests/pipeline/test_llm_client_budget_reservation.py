@@ -33,7 +33,7 @@ def test_gemini_reserves_before_request():
     assert 'requests.post(GEMINI_URL' in section
 
 
-def test_gemini_does_not_double_record_after_success():
+def test_gemini_does_not_double_record_after_success(, timeout=30):
     start = SOURCE.index("def _call_gemini")
     end = SOURCE.index("def discover_groq_models", start)
     section = SOURCE[start:end]

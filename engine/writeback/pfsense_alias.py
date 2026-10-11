@@ -97,7 +97,7 @@ def init_db(conn: sqlite3.Connection | None = None) -> None:
     own_conn = False
     try:
         if conn is None:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(DB_PATH)  # noqa: blocking-init
             own_conn = True
         conn.executescript(DDL_SCRIPT)
         conn.commit()
@@ -121,7 +121,7 @@ def store_proposal(name: str, ip: str, conn: sqlite3.Connection | None = None) -
     own_conn = False
     try:
         if conn is None:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(DB_PATH)  # noqa: blocking-init
             own_conn = True
         cursor = conn.cursor()
         cursor.execute(INSERT_PROPOSAL_SQL,
@@ -154,7 +154,7 @@ def rollback_execute(approved: bool = False, conn: sqlite3.Connection | None = N
     own_conn = False
     try:
         if conn is None:
-            conn = sqlite3.connect(DB_PATH)
+            conn = sqlite3.connect(DB_PATH)  # noqa: blocking-init
             own_conn = True
         cursor = conn.cursor()
         
@@ -192,7 +192,7 @@ def main() -> None:
     
     args = parser.parse_args()
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH)  # noqa: blocking-init
     try:
         init_db(conn)
         

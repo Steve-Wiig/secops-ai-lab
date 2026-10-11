@@ -83,7 +83,7 @@ def get_connection() -> Generator[sqlite3.Connection, None, None]:
     """
     if not logger.handlers:
         raise RuntimeError("Logging not configured. Call configure_logging() before using database.")
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH)  # noqa: blocking-init
     conn.row_factory = sqlite3.Row
     try:
         yield conn

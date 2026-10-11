@@ -74,7 +74,7 @@ class AlertEnrichmentService:
             insights.
         """
         # Simulate variable LLM latency.
-        time.sleep(SIMULATED_LLM_CALL_DURATION_SECONDS)
+        time.sleep(SIMULATED_LLM_CALL_DURATION_SECONDS)  # noqa: simulated-delay
         # Simulate a successful LLM response.
         return EnrichedAlert(
             alert=alert,

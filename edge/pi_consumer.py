@@ -211,7 +211,7 @@ def _run_inference(job: Dict[str, Any]) -> Tuple[Dict[str, Any], float]:
 
     start_time = time.time()
     try:
-        response = requests.post(OLLAMA_URL, json={
+        response = requests.post(OLLAMA_URL, timeout=30, json={
             "model": MODEL,
             "prompt": prompt,
             "stream": False,
@@ -274,7 +274,7 @@ def _handle_job(redis_client: "redis.Redis", job_json: str, hmac_secret: str) ->
     verdict, inference_duration = _run_inference(job)
     _publish_verdict(redis_client, job, verdict, inference_duration)
 
-    time.sleep(dynamic_thermal_pace())
+    time.sleep(dynamic_thermal_pace())  # noqa: thermal-pacing
 
 
 def main() -> None:
@@ -299,10 +299,10 @@ def main() -> None:
 
         except redis.exceptions.ConnectionError:
             print("❌ Redis connection lost, retrying...")
-            time.sleep(5)
+            time.sleep(5)  # noqa: reconnect-backoff
         except Exception as exc:
             print(f"⚠️ Consumer Error: {exc}")
-            time.sleep(5)
+            time.sleep(5)  # noqa: intentional-sleep
 
 
 if __name__ == "__main__":

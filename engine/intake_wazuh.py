@@ -107,7 +107,7 @@ def _get_connection() -> sqlite3.Connection:
     """
     global _connection
     if _connection is None:
-        _connection = sqlite3.connect(DB_PATH, check_same_thread=False)
+        _connection = sqlite3.connect(DB_PATH, check_same_thread=False)  # noqa: blocking-init
         _connection.execute("PRAGMA journal_mode=WAL")
         _connection.execute("PRAGMA busy_timeout=5000")
         _init_audit_table(_connection)

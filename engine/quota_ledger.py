@@ -86,11 +86,11 @@ def _get_pooled_connection(db_path: str) -> sqlite3.Connection:
         A live sqlite3.Connection cached for the current thread.
     """
     if _thread_local.conn is None:
-        _thread_local.conn = sqlite3.connect(db_path, check_same_thread=False)
+        _thread_local.conn = sqlite3.connect(db_path, check_same_thread=False)  # noqa: blocking-init
         _thread_local.conn.execute("PRAGMA foreign_keys = ON")
     elif _thread_local.db_path != db_path:
         _thread_local.conn.close()
-        _thread_local.conn = sqlite3.connect(db_path, check_same_thread=False)
+        _thread_local.conn = sqlite3.connect(db_path, check_same_thread=False)  # noqa: blocking-init
         _thread_local.conn.execute("PRAGMA foreign_keys = ON")
     _thread_local.db_path = db_path
     return _thread_local.conn
@@ -134,7 +134,7 @@ def get_db_connection(db_path: Optional[str] = None) -> Generator[sqlite3.Connec
             conn.rollback()
             raise QuotaLedgerError(f"Database error: {e}") from e
     else:
-        conn = sqlite3.connect(resolved_path)
+        conn = sqlite3.connect(resolved_path)  # noqa: blocking-init
         try:
             yield conn
             conn.commit()

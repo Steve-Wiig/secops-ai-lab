@@ -219,7 +219,7 @@ def _find_patch_location_strict(source: str, search_text: str) -> int:
     exact_matches = []
     start = 0
     while True:
-        time.sleep(0.1)  # Phase 4 Fix: Prevent CPU exhaustion in polling loop
+        time.sleep(0.1)  # Phase 4 Fix: Prevent CPU exhaustion in polling loop  # noqa: cpu-throttle
         pos = source.find(search_text, start)
         if pos == -1:
             break

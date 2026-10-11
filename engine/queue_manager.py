@@ -100,7 +100,7 @@ class TriageQueueManager:
         emergency_depth : int, optional
             Threshold for backpressure on low‑priority jobs. Defaults to 1000.
         """
-        self.conn: sqlite3.Connection = sqlite3.connect(db_path)
+        self.conn: sqlite3.Connection = sqlite3.connect(db_path)  # noqa: blocking-init
         self.cursor: sqlite3.Cursor = self.conn.cursor()
         self._init_schema()
         self.lease_interval: int = lease_interval

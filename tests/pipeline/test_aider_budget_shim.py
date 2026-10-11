@@ -225,5 +225,5 @@ def test_metadata_network_gate_blocks_requests(monkeypatch):
         requests.get(
             "https://raw.githubusercontent.com/BerriAI/litellm/main/"
             "model_prices_and_context_window.json"
-        )
+        , timeout=30)
 

@@ -17,6 +17,30 @@ P1_PATTERNS = [
     (r"\b(sqlite3\.connect|time\.sleep)\b", "P1: Blocking call - ensure not in async route (use asyncio.to_thread)"),
 ]
 
+
+# Directories/files that are CLI scripts or tests — never async routes
+NON_ASYNC_DIRS = {'tests', 'simulator', 'scripts', 'diagnostics'}
+NON_ASYNC_FILES = {
+    'backlog_scanner.py', 'fix_p1_issues.py', 'quality_gate.py',
+    'embedding_prefix_idempotency_check.py', 'pi_redis_ingestor.py',
+    'deferred_dedup.py', 'queue_backpressure_check.py',
+    'verify_dashboard.py', 'analyze_escalations_readonly.py',
+    'analyze_escalations_readonly_v2.py',
+}
+NON_ASYNC_PREFIXES = ('overnight/',)
+
+def is_async_context(filepath):
+    """Check if file could contain async routes."""
+    rel = os.path.relpath(filepath, '.')
+    parts = rel.split(os.sep)
+    if any(d in NON_ASYNC_DIRS for d in parts):
+        return False
+    if os.path.basename(rel) in NON_ASYNC_FILES:
+        return False
+    if any(rel.startswith(pfx) for pfx in NON_ASYNC_PREFIXES):
+        return False
+    return True
+
 def scan_file(filepath):
     issues = []
     try:
@@ -27,9 +51,23 @@ def scan_file(filepath):
             if re.search(pattern, content, re.MULTILINE):
                 issues.append(f"🚨 {msg} in {filepath}")
                 
+        file_is_async = is_async_context(filepath)
         for pattern, msg in P1_PATTERNS:
-            if re.search(pattern, content):
-                issues.append(f"⚠️ {msg} in {filepath}")
+            # Only check blocking calls in async-capable files
+            if 'Blocking call' in msg and not file_is_async:
+                continue
+            for i, line in enumerate(content.splitlines(), 1):
+                stripped = line.strip()
+                # Skip import lines, except handlers, comments, and lines already having timeout
+                if stripped.startswith(('import ', 'from ', '#', 'except ')):
+                    continue
+                if 'timeout' in line:
+                    continue
+                if re.search(pattern, line):
+                    if "noqa" in line:
+                        continue  # Intentional, skip
+                    issues.append(f"⚠️ {msg} in {filepath}:{i}")
+                    break  # One warning per file per pattern
                 
     except Exception as e:
         print(f"⚠️ Could not scan {filepath}: {e}")

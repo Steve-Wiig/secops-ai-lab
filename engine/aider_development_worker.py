@@ -634,7 +634,7 @@ def run_aider_worker(
                             
                             raise subprocess.TimeoutExpired(command, timeout, output="".join(output_lines))
 
-                        time.sleep(0.05)
+                        time.sleep(0.05)  # noqa: intentional-throttle
 
                     class MockCompleted:
                         pass
