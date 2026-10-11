@@ -16,6 +16,15 @@ run_aider_with_prompt() {
 }
 
 verify_changes() {
+    # Syntax check first — catch broken files immediately
+    local py_files
+    py_files=$(git diff --name-only HEAD 2>/dev/null | grep '\.py$' || true)
+    for f in $py_files; do
+        if [[ -f "$f" ]] && ! python3 -c "compile(open('$f').read(), '$f', 'exec')" 2>/dev/null; then
+            log "❌ Syntax error in $f"
+            return 1
+        fi
+    done
     # Run quality gate
     if ! python3 tools/quality_gate.py >/dev/null 2>&1; then
         log "❌ Quality gate failed"
