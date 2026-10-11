@@ -421,40 +421,91 @@ def get_system_status():
 # from fastapi import FastAPI
 # app = FastAPI()
 # 
-# @app.get("/api/system-status")
-# def system_status():
-#     return get_system_status()
+# 
+@app.get("/api/live-activity")
+async def live_activity():
+    """Real-time swarm activity feed for dashboard."""
+    import sqlite3
+    from pathlib import Path
+    activities = []
+    db_path = Path(__file__).resolve().parent / "dashboard_memory.db"
+    try:
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute(
+            "SELECT symptom, root_cause, verified FROM fix_patterns ORDER BY rowid DESC LIMIT 10"
+        ).fetchall()
+        for r in rows:
+            activities.append({"event": r[0], "detail": r[1], "verified": bool(r[2])})
+        conn.close()
+    except Exception as e:
+        activities = [{"event": "memory_db_error", "detail": str(e), "verified": False}]
+    return {"activities": activities}
 
-# For Flask:
-# from flask import Flask, jsonify
-# app = Flask(__name__)
-# 
-# @app.route('/api/system-status')
-# def system_status():
-#     return jsonify(get_system_status())
 
-# For simple HTTP server (if no framework):
-# import http.server
-# import socketserver
-# 
-# class StatusHandler(http.server.SimpleHTTPRequestHandler):
-#     def do_GET(self):
-#         if self.path == '/api/system-status':
-#             self.send_response(200)
-#             self.send_header('Content-type', 'application/json')
-#             self.end_headers()
-#             self.wfile.write(json.dumps(get_system_status()).encode())
-#         else:
-#             super().do_GET()
-# 
-# PORT = 8080
-# with socketserver.TCPServer(("", PORT), StatusHandler) as httpd:
-#     print(f"Serving on port {PORT}")
-#     httpd.serve_forever()
+@app.get("/api/settings")
+async def get_settings():
+    """Load current worker settings for dashboard."""
+    import os
+    return {
+        "fixes_per_pass": int(os.environ.get("FIXES_PER_PASS", "3")),
+        "max_retries": int(os.environ.get("MAX_RETRIES", "5")),
+        "primary_worker": os.environ.get("PRIMARY_WORKER", "aider"),
+        "local_model": os.environ.get("LOCAL_MODEL", "qwen2.5-coder:7b"),
+    }
+
+
+@app.post("/api/settings")
+async def save_settings(request: dict = None):
+    """Save worker settings from dashboard (env-only, no persistence yet)."""
+    # Stub: log the attempt but don't persist until we have a settings store
+    print(f"⚙️ Settings update requested: {request}")
+    return {"status": "acknowledged", "note": "Runtime-only; restart required"}
+
 
 if __name__ == "__main__":
     # Test the API
     print(json.dumps(get_system_status(), indent=2))
+
+
+@app.get("/api/live-activity")
+async def live_activity():
+    """Real-time swarm activity feed for dashboard."""
+    import sqlite3
+    from pathlib import Path
+    activities = []
+    db_path = Path(__file__).resolve().parent / "dashboard_memory.db"
+    try:
+        conn = sqlite3.connect(db_path)
+        rows = conn.execute(
+            "SELECT symptom, root_cause, verified FROM fix_patterns ORDER BY rowid DESC LIMIT 10"
+        ).fetchall()
+        for r in rows:
+            activities.append({"event": r[0], "detail": r[1], "verified": bool(r[2])})
+        conn.close()
+    except Exception as e:
+        activities = [{"event": "memory_db_error", "detail": str(e), "verified": False}]
+    return {"activities": activities}
+
+
+@app.get("/api/settings")
+async def get_settings():
+    """Load current worker settings for dashboard."""
+    import os
+    return {
+        "fixes_per_pass": int(os.environ.get("FIXES_PER_PASS", "3")),
+        "max_retries": int(os.environ.get("MAX_RETRIES", "5")),
+        "primary_worker": os.environ.get("PRIMARY_WORKER", "aider"),
+        "local_model": os.environ.get("LOCAL_MODEL", "qwen2.5-coder:7b"),
+    }
+
+
+@app.post("/api/settings")
+async def save_settings(request: dict = None):
+    """Save worker settings from dashboard (env-only, no persistence yet)."""
+    # Stub: log the attempt but don't persist until we have a settings store
+    print(f"⚙️ Settings update requested: {request}")
+    return {"status": "acknowledged", "note": "Runtime-only; restart required"}
+
 
 @app.get("/api/system-status")
 def system_status_endpoint():
