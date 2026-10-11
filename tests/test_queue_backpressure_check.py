@@ -4,7 +4,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 from unittest.mock import patch, MagicMock
-from engine.queue_backpressure_check import check_backpressure
+from tools.queue_backpressure_check import check_backpressure
 
 @pytest.fixture
 def mock_env(monkeypatch):
