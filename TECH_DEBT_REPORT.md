@@ -6,8 +6,8 @@
 - [x] `engine/strict_queue_transitions.py` - **Missing state in matrix:** `VALID_TRANSITIONS` doesn't include "shed" status (used in queue_manager for load shedding). -> *Proposed Fix:* Add "shed" to the transition matrix to prevent `StateTransitionViolation` during high-load events.
 
 ## 🟡 Medium Priority (Edge/Pi Optimization & Robustness)
-- [ ] `overnight/budget_manager.py` - **Clock drift vulnerability:** Time-based calculations rely on `datetime.now()` which can be manipulated or drift on edge Pi nodes. -> *Proposed Fix:* Use `time.monotonic()` for internal wait/sleep calculations.
-- [ ] `overnight/budget_manager.py` - **Thread-safety gap:** In-memory `_usage` deque lacks locks for multi-threaded swarm workers. -> *Proposed Fix:* Add `threading.Lock()` around deque mutations.
+- [x] `overnight/budget_manager.py` - **Clock drift vulnerability:** Time-based calculations rely on `datetime.now()` which can be manipulated or drift on edge Pi nodes. -> *Proposed Fix:* Use `time.monotonic()` for internal wait/sleep calculations.
+- [x] `overnight/budget_manager.py` - **Thread-safety gap:** In-memory `_usage` deque lacks locks for multi-threaded swarm workers. -> *Proposed Fix:* Add `threading.Lock()` around deque mutations.
 - [ ] `engine/advisory_identity.py` - **Over-aggressive normalization:** Stripping all punctuation destroys semantic meaning (e.g., IP addresses, CVE numbers like CVE-2024-1234). -> *Proposed Fix:* Refine regex to preserve structural punctuation like dots and hyphens.
 
 ## 🟢 Low Priority (Code Cleanliness & Refactoring)
