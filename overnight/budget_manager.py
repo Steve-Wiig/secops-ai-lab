@@ -91,31 +91,33 @@ class APIBudgetManager:
         self.usage_file = Path(usage_file) if usage_file else USAGE_FILE
         self.lock_file = Path(lock_file) if lock_file else LOCK_FILE
         self._usage = self._load_usage()
-        self._lock = threading.RLock()
+        self._lock = threading.Lock()
 
     # ============================================================
     # PERSISTENCE
     # ============================================================
     def _load_usage(self) -> Dict:
         """Load usage history from disk. Timestamps stored as monotonic floats."""
-        if self.usage_file.exists():
-            try:
-                data = json.loads(self.usage_file.read_text())
-                usage = {}
-                for provider, timestamps in data.items():
-                    usage[provider] = deque(timestamps)  # floats from time.monotonic()
-                return usage
-            except (json.JSONDecodeError, ValueError):
-                pass
-        return {provider: deque() for provider in self.limits}
+        with self._lock:
+            if self.usage_file.exists():
+                try:
+                    data = json.loads(self.usage_file.read_text())
+                    usage = {}
+                    for provider, timestamps in data.items():
+                        usage[provider] = deque(timestamps)  # floats from time.monotonic()
+                    return usage
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            return {provider: deque() for provider in self.limits}
 
     def _save_usage(self):
         """Persist usage history to disk."""
-        self.usage_file.parent.mkdir(parents=True, exist_ok=True)
-        data = {}
-        for provider, timestamps in self._usage.items():
-            data[provider] = list(timestamps)  # list of monotonic floats
-        self.usage_file.write_text(json.dumps(data, indent=2))
+        with self._lock:
+            self.usage_file.parent.mkdir(parents=True, exist_ok=True)
+            data = {}
+            for provider, timestamps in self._usage.items():
+                data[provider] = list(timestamps)  # list of monotonic floats
+            self.usage_file.write_text(json.dumps(data, indent=2))
 
     # ============================================================
     # USAGE TRACKING
@@ -193,25 +195,26 @@ class APIBudgetManager:
 
     def get_remaining(self, provider: str) -> Dict[str, int]:
         """Get remaining budget based on actual enforcement limits."""
-        usage = self.get_usage(provider)
-        limits = self.limits.get(provider, {})
-        return {
-            "per_minute": max(
-                0,
-                self._effective_limit(limits.get("per_minute", 0))
-                - usage["last_minute"]
-            ),
-            "per_hour": max(
-                0,
-                self._effective_limit(limits.get("per_hour", 0))
-                - usage["last_hour"]
-            ),
-            "per_day": max(
-                0,
-                self._effective_limit(limits.get("per_day", 0))
-                - usage["last_day"]
-            ),
-        }
+        with self._lock:
+            usage = self.get_usage(provider)
+            limits = self.limits.get(provider, {})
+            return {
+                "per_minute": max(
+                    0,
+                    self._effective_limit(limits.get("per_minute", 0))
+                    - usage["last_minute"]
+                ),
+                "per_hour": max(
+                    0,
+                    self._effective_limit(limits.get("per_hour", 0))
+                    - usage["last_hour"]
+                ),
+                "per_day": max(
+                    0,
+                    self._effective_limit(limits.get("per_day", 0))
+                    - usage["last_day"]
+                ),
+            }
 
     def get_limits_for_model(self, model: str = None) -> Dict:
         """Get rate limits for a specific Groq model."""
@@ -340,29 +343,30 @@ class APIBudgetManager:
     # ============================================================
     def report(self) -> str:
         """Generate a human-readable usage report."""
-        lines = ["=" * 60]
-        lines.append("API USAGE REPORT")
-        lines.append("=" * 60)
+        with self._lock:
+            lines = ["=" * 60]
+            lines.append("API USAGE REPORT")
+            lines.append("=" * 60)
 
-        for provider, limits in self.limits.items():
-            usage = self.get_usage(provider)
-            remaining = self.get_remaining(provider)
+            for provider, limits in self.limits.items():
+                usage = self.get_usage(provider)
+                remaining = self.get_remaining(provider)
 
-            lines.append(f"\n  {provider.upper()}:")
-            lines.append(f"    Last minute: {usage['last_minute']:3d} / {limits.get('per_minute', '?')} "
-                        f"(remaining: {remaining['per_minute']})")
-            lines.append(f"    Last hour:   {usage['last_hour']:3d} / {limits.get('per_hour', '?')} "
-                        f"(remaining: {remaining['per_hour']})")
-            lines.append(f"    Last 24h:    {usage['last_day']:3d} / {limits.get('per_day', '?')} "
-                        f"(remaining: {remaining['per_day']})")
+                lines.append(f"\n  {provider.upper()}:")
+                lines.append(f"    Last minute: {usage['last_minute']:3d} / {limits.get('per_minute', '?')} "
+                            f"(remaining: {remaining['per_minute']})")
+                lines.append(f"    Last hour:   {usage['last_hour']:3d} / {limits.get('per_hour', '?')} "
+                            f"(remaining: {remaining['per_hour']})")
+                lines.append(f"    Last 24h:    {usage['last_day']:3d} / {limits.get('per_day', '?')} "
+                            f"(remaining: {remaining['per_day']})")
 
-            # Status indicator
-            can_go = self.can_proceed(provider)
-            status = "✅ READY" if can_go else "⚠️  PAUSED (limit approaching)"
-            lines.append(f"    Status:      {status}")
+                # Status indicator
+                can_go = self.can_proceed(provider)
+                status = "✅ READY" if can_go else "⚠️  PAUSED (limit approaching)"
+                lines.append(f"    Status:      {status}")
 
-        lines.append("\n" + "=" * 60)
-        return "\n".join(lines)
+            lines.append("\n" + "=" * 60)
+            return "\n".join(lines)
 
     def reset(self):
         """Reset all usage counters."""
