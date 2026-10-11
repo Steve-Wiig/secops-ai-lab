@@ -15,7 +15,7 @@ Provides:
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, Generator, List
 
 
 def record_fingerprint(record: Dict[str, Any]) -> str:
@@ -25,6 +25,10 @@ def record_fingerprint(record: Dict[str, Any]) -> str:
     Excludes timestamp so repeated observations
     of the same failure deduplicate.
 
+    Optimization: first checks if the record already has a
+    ``memory_hash`` field. If present, uses that directly
+    instead of recomputing the fingerprint.
+
     Args:
         record: The memory record to fingerprint.
 
@@ -32,6 +36,11 @@ def record_fingerprint(record: Dict[str, Any]) -> str:
         A hex-encoded SHA-256 digest derived from the
         record's identity-relevant fields.
     """
+
+    # Fast path: use stored memory_hash if available
+    stored_hash = record.get("memory_hash")
+    if stored_hash:
+        return stored_hash
 
     keys = [
         "category",
@@ -60,26 +69,27 @@ def record_fingerprint(record: Dict[str, Any]) -> str:
     ).hexdigest()
 
 
-def load_records(path: Path) -> List[Dict[str, Any]]:
+def load_records(path: Path) -> Generator[Dict[str, Any], None, None]:
     """
-    Load JSONL records from disk safely.
+    Load JSONL records from disk safely, yielding one record at a time.
 
-    Missing files yield an empty list. Invalid lines
+    Missing files yield an empty generator. Invalid lines
     (malformed JSON) are silently skipped rather than
     raising, so a single corrupted line cannot break
     retrieval of the rest of the file.
 
+    This generator-based approach avoids loading entire
+    files into memory, making it safe for large JSONL files.
+
     Args:
         path: Path to the JSONL file.
 
-    Returns:
-        A list of parsed record dictionaries.
+    Yields:
+        Individual parsed record dictionaries.
     """
 
     if not path.exists():
-        return []
-
-    records: List[Dict[str, Any]] = []
+        return
 
     try:
         with path.open(
@@ -91,16 +101,12 @@ def load_records(path: Path) -> List[Dict[str, Any]]:
                     continue
 
                 try:
-                    records.append(
-                        json.loads(line)
-                    )
+                    yield json.loads(line)
                 except json.JSONDecodeError:
                     continue
 
     except OSError:
-        return []
-
-    return records
+        return
 
 
 def append_unique(
@@ -113,6 +119,11 @@ def append_unique(
     Identity is determined by record_fingerprint(), which
     ignores volatile fields like timestamps.
 
+    Optimization: first checks if the record already has a
+    ``memory_hash`` field. If present, uses that directly
+    instead of recomputing the fingerprint, avoiding O(n)
+    hash recomputation per append.
+
     Args:
         path: Path to the JSONL file to append to.
         record: The record to append.
@@ -122,11 +133,17 @@ def append_unique(
         a duplicate and therefore skipped.
     """
 
+    # Fast path: check existing memory_hash if present
     existing = load_records(path)
 
     new_hash = record_fingerprint(record)
 
     for item in existing:
+        # Use stored memory_hash if available to avoid
+        # recomputing the fingerprint
+        stored_hash = item.get("memory_hash")
+        if stored_hash and stored_hash == new_hash:
+            return False
         if record_fingerprint(item) == new_hash:
             return False
 
@@ -165,6 +182,9 @@ def append_record(
     Unlike append_unique(), repeated identical
     records are expected and preserved.
 
+    Unlike append_unique(), this function now adds
+    a ``memory_hash`` field for schema consistency.
+
     Args:
         path: Path to the JSONL file to append to.
         record: The record to append.
@@ -175,12 +195,17 @@ def append_record(
         exist_ok=True,
     )
 
+    new_hash = record_fingerprint(record)
+
+    enriched_record = dict(record)
+    enriched_record["memory_hash"] = new_hash
+
     with path.open(
         "a",
         encoding="utf-8",
     ) as f:
         f.write(
-            json.dumps(record)
+            json.dumps(enriched_record)
             + "\n"
         )
 
@@ -288,7 +313,7 @@ def load_failures(path: Path) -> List[Dict[str, Any]]:
     Returns:
         A list of parsed failure record dictionaries.
     """
-    return load_records(path)
+    return list(load_records(path))
 
 
 def find_matching_failures(
