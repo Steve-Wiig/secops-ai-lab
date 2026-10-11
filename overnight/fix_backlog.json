@@ -5338,5 +5338,35 @@
     },
     "source_hash": "a908c6899bb4a6530255b201f112317878fc790ef73a73d2dafe70b3e537894f",
     "advisory_fingerprint": "d8c4432ba549ad55bbad72747d458054aa5badb55808c543b90b8798da928174"
+  },
+  {
+    "file": "engine/writeback/so_cases.py",
+    "issue": {
+      "category": "maintainability",
+      "severity": "medium",
+      "line_start": 176,
+      "line_end": 176,
+      "description": "[PYLINT E1121] Consider refactoring the lambda function to pass fewer arguments.",
+      "suggestion": "Consider refactoring the lambda function to pass fewer arguments.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit"
   }
 ]

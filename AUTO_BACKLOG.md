@@ -1,5 +1,5 @@
 # 🤖 Autonomous Backlog
-*Generated: 2026-10-11T02:31:38*
+*Generated: 2026-10-11T16:52:00*
 
 ## Instructions for Aider
 - Pick the **top unchecked** item below
@@ -9,7 +9,7 @@
 - Change `[ ]` to `[x]` when resolved
 - If unfixable, add to `dashboard_memory.db` fix_patterns and skip
 
-## 🔴 Prioritized Issues (77 found)
+## 🔴 Prioritized Issues (81 found)
 
 - [ ] **🟡 Overnight Exception**
   - Message: `paths, safety-gate logic, and queue-transition semantics in provided codebase.`
@@ -91,8 +91,24 @@
   - Message: `unsupported partial triage_queue migration`. | **~25%** |`
   - Source: `llm_analysis_20261010_021123.md`
 
+- [ ] **🟠 Safety Gate Logic**
+  - Message: `safety-gate`
+  - Source: `llm_analysis_20261010_021123.md`
+
+- [ ] **🟠 Safety Gate Logic**
+  - Message: `Safety Gate`
+  - Source: `llm_analysis_20261010_021123.md`
+
 - [ ] **🟡 Overnight Error**
   - Message: `outside the inference try/finally. | **~24%**<br>*Secondary driver: Threaded lease heartbeat races and 30s hard timeout under queue pressure.* |`
+  - Source: `llm_analysis_20261010_020915.md`
+
+- [ ] **🟠 Safety Gate Logic**
+  - Message: `queue-transition`
+  - Source: `llm_analysis_20261010_020915.md`
+
+- [ ] **🟠 Safety Gate Logic**
+  - Message: `queue transition`
   - Source: `llm_analysis_20261010_020915.md`
 
 - [ ] **🟡 Overnight Error**

@@ -41,6 +41,7 @@ def scan_overnight_logs(max_files=20):
         (r"(?i)timeout[:\s]+(.+)", "overnight_timeout"),
         (r"(?i)exception[:\s]+(.+)", "overnight_exception"),
         (r"(?i)429|rate.?limit", "api_rate_limit"),
+        (r"(?i)safety.gate|queue.transition", "safety_gate_logic"),
     ]
     for f in md_files:
         try:
@@ -127,7 +128,7 @@ def scan_route_consistency():
         for f in ui_dir.glob(ext):
             try:
                 text = f.read_text(errors="replace")
-                for match in re.findall(r"fetch\(['"](/api/[^'"?]+)", text):
+                for match in re.findall(r"fetch\([\'\"](\/api\/[^\'\"\?]+)", text):
                     frontend_calls.add(match)
             except Exception:
                 continue
@@ -152,7 +153,7 @@ def prioritize_issues(issues, known_patterns):
         if key not in seen and key not in known_patterns:
             seen.add(key)
             unique.append(issue)
-    priority_order = {"test_import_error": 0, "test_regression": 1, "stale_lease": 2, "dead_letter": 3, "overnight_exception": 4, "overnight_error": 5, "api_rate_limit": 6, "overnight_failure": 7, "overnight_timeout": 8, "test_infrastructure": 9}
+    priority_order = {"test_import_error": 0, "test_regression": 1, "stale_lease": 2, "dead_letter": 3, "overnight_exception": 4, "overnight_error": 5, "safety_gate_logic": 5, "api_rate_limit": 6, "overnight_failure": 7, "overnight_timeout": 8, "test_infrastructure": 9}
     unique.sort(key=lambda x: priority_order.get(x["category"], 99))
     return unique
 
@@ -164,7 +165,7 @@ def generate_backlog(issues):
     else:
         lines.append(f"## 🔴 Prioritized Issues ({len(issues)} found)")
         lines.append("")
-        labels = {"test_import_error": "🚨 Test Import/Collection Error", "test_regression": "🔴 Test Regression", "stale_lease": "🟠 Stale Queue Lease", "dead_letter": "🟠 Dead-Lettered Queue Item", "overnight_exception": "🟡 Overnight Exception", "overnight_error": "🟡 Overnight Error", "api_rate_limit": "🟡 API Rate Limit Hit", "overnight_failure": "🟡 Overnight Failure", "overnight_timeout": "🟡 Overnight Timeout", "test_infrastructure": "🟢 Test Infrastructure"}
+        labels = {"test_import_error": "🚨 Test Import/Collection Error", "test_regression": "🔴 Test Regression", "stale_lease": "🟠 Stale Queue Lease", "dead_letter": "🟠 Dead-Lettered Queue Item", "overnight_exception": "🟡 Overnight Exception", "overnight_error": "🟡 Overnight Error", "api_rate_limit": "🟡 API Rate Limit Hit", "overnight_failure": "🟡 Overnight Failure", "overnight_timeout": "🟡 Overnight Timeout", "test_infrastructure": "🟢 Test Infrastructure", "safety_gate_logic": "🟠 Safety Gate Logic"}
         for issue in issues:
             label = labels.get(issue["category"], issue["category"])
             lines += [f"- [ ] **{label}**", f"  - Message: `{issue['message']}`", f"  - Source: `{issue['file']}`", ""]
