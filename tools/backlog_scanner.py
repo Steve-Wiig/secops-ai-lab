@@ -103,6 +103,47 @@ def scan_queue_state():
             continue
     return issues
 
+
+def scan_route_consistency():
+    """Detect frontend API calls that have no matching backend route."""
+    issues = []
+    import re
+    
+    # Extract all routes from server.py
+    server_path = ROOT / "tools" / "web_ui" / "server.py"
+    backend_routes = set()
+    if server_path.exists():
+        try:
+            text = server_path.read_text(errors="replace")
+            for match in re.findall(r'@app\.(get|post|put|delete)\("([^"]+)"\)', text):
+                backend_routes.add(match[1])
+        except Exception as e:
+            print(f"  ⚠️ Could not parse server routes: {e}")
+    
+    # Extract all fetch() calls from frontend HTML/JS
+    frontend_calls = set()
+    ui_dir = ROOT / "tools" / "web_ui"
+    for ext in ["*.html", "*.js"]:
+        for f in ui_dir.glob(ext):
+            try:
+                text = f.read_text(errors="replace")
+                for match in re.findall(r"fetch\(['"](/api/[^'"?]+)", text):
+                    frontend_calls.add(match)
+            except Exception:
+                continue
+    
+    # Find mismatches
+    missing = frontend_calls - backend_routes
+    for route in sorted(missing):
+        issues.append({
+            "source": "route_consistency",
+            "category": "test_regression",  # High priority - broken UI
+            "message": f"Frontend fetches `{route}` but no backend route exists",
+            "file": "tools/web_ui/",
+        })
+    
+    return issues
+
 def prioritize_issues(issues, known_patterns):
     seen = set()
     unique = []
@@ -141,6 +182,8 @@ def main():
     all_issues.extend(scan_test_results())
     print("  Scanning queue state...")
     all_issues.extend(scan_queue_state())
+    print("  Scanning route consistency...")
+    all_issues.extend(scan_route_consistency())
     print(f"  Found {len(all_issues)} raw issues")
     prioritized = prioritize_issues(all_issues, known)
     print(f"  {len(prioritized)} unique actionable issues after dedup")
