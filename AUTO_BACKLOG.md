@@ -11,7 +11,7 @@
 
 ## 🔴 Prioritized Issues (435 found)
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression** *(resolved: stale finding — no lambda exists in current code)*
   - Message: `[pi_edge_bandit] engine/writeback/so_cases.py: [PYLINT E1121] Consider refactoring the lambda function to pass fewer arguments.`
   - Source: `engine/writeback/so_cases.py`
 
