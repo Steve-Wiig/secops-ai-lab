@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 # Autonomous Fix Loop: context load → aider → verify → retry or next
 set -euo pipefail
+
+LOCKFILE="/tmp/soc_autopilot_fix_loop.lock"
+if [[ -f "$LOCKFILE" ]]; then
+    echo "Another fix loop is already running (PID: $(cat "$LOCKFILE"))"
+    exit 1
+fi
+echo $$ > "$LOCKFILE"
+trap 'rm -f "$LOCKFILE"; echo "[$(date +%H:%M:%S)] 🛑 Fix loop interrupted"' EXIT INT TERM
+
 cd "$(dirname "$0")/.."
 
 MAX_RETRIES=2
@@ -56,6 +65,10 @@ cleanup_garbage() {
 
 main() {
     log "🔄 AUTONOMOUS FIX LOOP STARTING"
+    local items_fixed=0
+    local items_skipped=0
+    PROGRESS_FILE="tools/.auto_fix_progress"
+    : > "$PROGRESS_FILE"
     
     while true; do
         # Get next issue
@@ -101,6 +114,8 @@ main() {
                 
                 if verify_changes "$TEST_FILE"; then
                     log "✅ Fix verified on attempt $attempt"
+                    items_fixed=$((items_fixed + 1))
+                    echo "$(date +%s)|$LABEL|fixed" >> "$PROGRESS_FILE"
                     # Commit
                     git add -A 2>/dev/null || true
                     git diff --cached --quiet 2>/dev/null || \
@@ -123,6 +138,8 @@ main() {
         
         if [[ "$SUCCESS" != "true" ]]; then
             log "⏭️ Skipping unfixable item after $MAX_RETRIES attempts"
+            items_skipped=$((items_skipped + 1))
+            echo "$(date +%s)|$LABEL|skipped" >> "$PROGRESS_FILE"
             # Mark as skipped in backlog so we don't loop forever
             python3 -c "
 import re
@@ -138,7 +155,8 @@ open(p, 'w').write(c)
         sleep 1
     done
     
-    log "🏁 FIX LOOP COMPLETE"
+    log "🏁 FIX LOOP COMPLETE: $items_fixed fixed, $items_skipped skipped"
+    rm -f "$PROGRESS_FILE"
 }
 
 main "$@"
