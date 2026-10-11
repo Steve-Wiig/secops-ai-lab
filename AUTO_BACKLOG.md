@@ -27,11 +27,11 @@
   - Message: `[unknown] engine/multi_file_patcher.py: The `_find_patch_location_strict` function contains `time.sleep(0.1)` inside a while loop that iterates over all exact matches. For a file with many occurrences of a search term, this causes massive l`
   - Source: `engine/multi_file_patcher.py`
 
-- [ ] **🔴 Test Regression**
-  - Message: `[unknown] engine/patch_parser.py: Fuzzy matching creates a new SequenceMatcher instance for every window position, resulting in O(n*m) object allocations where n=source lines and m=search lines. For a 1000-line file with 10-line searc`
+- [x] **🔴 Test Regression**
+  - Message: `[unknown] engine/patch_parser.py: Fuzzy matching creates a new SequenceMatcher *(resolved: SequenceMatcher reuse)* instance for every window position, resulting in O(n*m) object allocations where n=source lines and m=search lines. For a 1000-line file with 10-line searc`
   - Source: `engine/patch_parser.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression**
   - Message: `[unknown] engine/queue_priority.py: Priority mapping logic is duplicated in three places: NUMERIC_SEVERITY_PRIORITY dict (lines 15-25), severity_to_priority function (lines 72-80), and priority_case_sql function (lines 125-131). Any cha`
   - Source: `engine/queue_priority.py`
 
@@ -472,7 +472,7 @@
   - Source: `engine/openrouter_catalog.py`
 
 - [ ] **🟡 Overnight Error**
-  - Message: `[unknown] engine/patch_parser.py: _find_fuzzy_match creates a new SequenceMatcher and joins strings for every window position (O(n) allocations). For a 10000-line file and 50-line search, this creates 9950 SequenceMatcher objects and `
+  - Message: `[unknown] engine/patch_parser.py: _find_fuzzy_match creates a new SequenceMatcher *(resolved: SequenceMatcher reuse)* and joins strings for every window position (O(n) allocations). For a 10000-line file and 50-line search, this creates 9950 SequenceMatcher objects and `
   - Source: `engine/patch_parser.py`
 
 - [ ] **🟡 Overnight Error**

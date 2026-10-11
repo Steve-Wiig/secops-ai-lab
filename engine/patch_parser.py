@@ -198,10 +198,12 @@ def _find_fuzzy_match(
     best_ratio = 0.0
     best_idx = -1
     search_len = len(search_lines)
+    # Reuse a single SequenceMatcher instance to avoid O(n*m) object allocation.
+    matcher = difflib.SequenceMatcher(None, "", search_str, autojunk=False)
     # Slide a window of the EXACT same size to prevent ratio dilution.
     for idx in range(len(source_lines) - search_len + 1):
-        window = source_lines[idx: idx + search_len]
-        matcher = difflib.SequenceMatcher(None, "\n".join(window), search_str, autojunk=False)
+        window = "\n".join(source_lines[idx: idx + search_len])
+        matcher.set_seq1(window)
         ratio = matcher.ratio()
         if ratio > best_ratio:
             best_ratio = ratio
