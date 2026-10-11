@@ -8,12 +8,12 @@ class StateTransitionViolation(Exception):
     pass
 
 VALID_TRANSITIONS = {
-    "pending": {"processing", "failed", "cancelled"},
-    "processing": {"completed", "failed", "pending"}, # pending = retry
+    "pending": {"processing", "failed", "cancelled", "shed"},
+    "processing": {"completed", "failed", "pending", "shed"}, # pending = retry
     "completed": set(), # Terminal
     "failed": set(),    # Terminal
     "cancelled": set(), # Terminal
-    "shed": {"pending"}, # Load shedding: return to pending for retry
+    "shed": {"pending", "failed", "cancelled"}, # Load shedding: return to pending for retry, or terminate
 }
 
 def authorize_transition(current_state: str, target_state: str, job_record: dict) -> bool:
@@ -117,6 +117,21 @@ def transition_queue_state(conn, job_id: int, new_status: str, failure_reason: s
             "UPDATE triage_queue SET status = 'pending', "
             "started_at = NULL, lease_expires_at = NULL, "
             "last_heartbeat_at = NULL "
+            "WHERE id = ? AND status = ?",
+            (job_id, current),
+        )
+    elif target == "shed":
+        # Load shedding: reset to shed state, clear lease/heartbeat for retry or termination
+        cur = conn.execute(
+            "UPDATE triage_queue SET status = 'shed', "
+            "started_at = NULL, lease_expires_at = NULL, "
+            "last_heartbeat_at = NULL "
+            "WHERE id = ? AND status = ?",
+            (job_id, current),
+        )
+    elif target == "cancelled":
+        cur = conn.execute(
+            "UPDATE triage_queue SET status = 'cancelled' "
             "WHERE id = ? AND status = ?",
             (job_id, current),
         )
