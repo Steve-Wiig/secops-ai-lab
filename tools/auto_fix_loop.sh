@@ -18,13 +18,20 @@ run_aider_with_prompt() {
 verify_changes() {
     # Syntax check first — catch broken files immediately
     local py_files
-    py_files=$(git diff --name-only HEAD 2>/dev/null | grep '\.py$' || true)
+    py_files=$(git diff --name-only HEAD 2>/dev/null | grep '\\.py$' || true)
     for f in $py_files; do
         if [[ -f "$f" ]] && ! python3 -c "compile(open('$f').read(), '$f', 'exec')" 2>/dev/null; then
             log "❌ Syntax error in $f"
             return 1
         fi
     done
+    # Reject massive rewrites (>200 lines changed = probably not surgical)
+    local changed_lines
+    changed_lines=$(git diff --stat HEAD 2>/dev/null | tail -1 | grep -oP '\d+(?= insertion)' || echo "0")
+    if [[ "$changed_lines" -gt 200 ]]; then
+        log "❌ Diff too large (${changed_lines} lines) — rejecting non-surgical change"
+        return 1
+    fi
     # Run quality gate
     if ! python3 tools/quality_gate.py >/dev/null 2>&1; then
         log "❌ Quality gate failed"
