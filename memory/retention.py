@@ -164,25 +164,6 @@ def archive_partition(conn: PgConnection, partition_name: str, dry_run: bool = F
         raise RuntimeError(f"Archive failed for {partition_name}: {e}") from e
 
 
-def _archive_partition_worker(pool: ThreadedConnectionPool, partition_name: str, dry_run: bool = False) -> None:
-    """
-    Worker function that archives a partition using a connection from the pool.
-    
-    Args:
-        pool: ThreadedConnectionPool to get connections from.
-        partition_name: Name of the partition table to archive.
-        dry_run: If True, log actions without executing them.
-        
-    Raises:
-        RuntimeError: If the archiving process fails.
-    """
-    conn = pool.getconn()
-    try:
-        archive_partition(conn, partition_name, dry_run=dry_run)
-    finally:
-        pool.putconn(conn)
-
-
 def get_partitions_to_archive(db_url: str, retention_days: int, conn: PgConnection = None) -> List[str]:
     """
     Get list of partitions older than retention_days.
@@ -226,23 +207,6 @@ def get_partitions_to_archive(db_url: str, retention_days: int, conn: PgConnecti
             conn.close()
 
 
-from typing import Tuple, List
-import argparse
-import subprocess
-import sys
-import os
-import shutil
-import datetime
-from datetime import timezone
-import psycopg2
-from psycopg2.extensions import connection as PgConnection
-from psycopg2.pool import ThreadedConnectionPool
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import threading
-ARCHIVE_BASE = '/archive/iocs'
-CMR_MOUNT = '/mnt/cmr'
-ZSTD_COMMAND = 'zstd'
 import logging
 def execute_archive_plan(db_url: str, partitions: List[str], max_workers: int, dry_run: bool) -> None:
     """
