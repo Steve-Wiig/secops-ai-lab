@@ -51,7 +51,7 @@
   - Message: `[unknown] tools/changelog_completeness_check.py: Module-level functions (get_latest_tag, iter_commits_since_tag, get_commits_since_tag, parse_changelog_hashes) duplicate GitRepo and ChangelogParser class methods for 'backward compatibility with test`
   - Source: `tools/changelog_completeness_check.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression** *(skipped: auto-fix failed)*
   - Message: `[unknown] tools/changelog_completeness_check.py: main() function is 100 lines with 5 nested functions, mixing argument parsing, validation, collection, parsing, comparison, and reporting; violates single responsibility`
   - Source: `tools/changelog_completeness_check.py`
 
