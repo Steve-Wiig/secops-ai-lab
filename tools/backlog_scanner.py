@@ -68,7 +68,7 @@ def scan_test_results():
     except Exception as e:
         issues.append({"source": "test_collection", "category": "test_infrastructure", "message": str(e)[:200], "file": "tests/"})
     try:
-        result = subprocess.run(["python3", "-m", "pytest", "--lf", "-q", "--tb=line"], capture_output=True, text=True, cwd=ROOT, timeout=60)
+        result = subprocess.run(["python3", "-m", "pytest", "--lf", "-q", "--tb=line"], capture_output=True, text=True, cwd=ROOT, timeout=120)
         if result.returncode != 0:
             for line in result.stdout.splitlines():
                 if "FAILED" in line or "ERROR" in line:
@@ -104,6 +104,47 @@ def scan_queue_state():
             continue
     return issues
 
+
+
+def scan_fix_backlog():
+    """Ingest issues from overnight/fix_backlog.json (edge worker output)."""
+    issues = []
+    import json
+    fix_path = ROOT / "overnight" / "fix_backlog.json"
+    if not fix_path.exists():
+        return issues
+    try:
+        data = json.loads(fix_path.read_text(errors="replace"))
+        if not isinstance(data, list):
+            return issues
+        # Only process most recent 200 entries to avoid timeout
+        data = data[-200:] if len(data) > 200 else data
+        for entry in data:
+            if not isinstance(entry, dict):
+                continue
+            issue = entry.get("issue", {})
+            fname = entry.get("file", "unknown")
+            desc = issue.get("description", "")[:200]
+            severity = issue.get("severity", "low")
+            attempts = entry.get("attempts", 0)
+            source = entry.get("source", "unknown")
+            # Map severity to category priority
+            if severity == "high" or "E1121" in desc or "B101" in desc:
+                cat = "test_regression"
+            elif severity == "medium":
+                cat = "overnight_error"
+            else:
+                cat = "overnight_failure"
+            if desc and len(desc) > 5:
+                issues.append({
+                    "source": "fix_backlog",
+                    "category": cat,
+                    "message": f"[{source}] {fname}: {desc}",
+                    "file": fname,
+                })
+    except Exception as e:
+        print(f"  ⚠️ Error reading fix_backlog.json: {e}")
+    return issues
 
 def scan_route_consistency():
     """Detect frontend API calls that have no matching backend route."""
@@ -183,6 +224,8 @@ def main():
     all_issues.extend(scan_test_results())
     print("  Scanning queue state...")
     all_issues.extend(scan_queue_state())
+    print("  Scanning fix_backlog.json...")
+    all_issues.extend(scan_fix_backlog())
     print("  Scanning route consistency...")
     all_issues.extend(scan_route_consistency())
     print(f"  Found {len(all_issues)} raw issues")
