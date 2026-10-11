@@ -57,26 +57,26 @@ class TelemetryWriter:
                     self._drop_mode = False
                     self._warn("recovery", "Telemetry storage under cap, exiting drop mode.", event)
                 return
-            while total > self.max_buffer_bytes:
-                outbox_files = sorted(self.outbox_dir.glob("pending_*.jsonl"))
-                if outbox_files:
-                    file_to_remove = outbox_files[0]
-                    try:
-                        file_size = file_to_remove.stat().st_size
-                    except OSError:
-                        file_size = 0
-                    file_to_remove.unlink(missing_ok=True)
-                    total -= file_size
-                    if total <= self.max_buffer_bytes:
-                        if self._drop_mode:
-                            self._drop_mode = False
-                            self._warn("recovery", "Telemetry storage under cap, exiting drop mode.", event)
-                        break
-                else:
-                    if not self._drop_mode:
-                        self._drop_mode = True
-                        self._warn("cap_drop", "Telemetry cap exceeded. Entering drop mode.", event)
+            outbox_files = sorted(self.outbox_dir.glob("pending_*.jsonl"))
+            i = 0
+            while total > self.max_buffer_bytes and i < len(outbox_files):
+                file_to_remove = outbox_files[i]
+                i += 1
+                try:
+                    file_size = file_to_remove.stat().st_size
+                except OSError:
+                    file_size = 0
+                file_to_remove.unlink(missing_ok=True)
+                total -= file_size
+                if total <= self.max_buffer_bytes:
+                    if self._drop_mode:
+                        self._drop_mode = False
+                        self._warn("recovery", "Telemetry storage under cap, exiting drop mode.", event)
                     break
+            if total > self.max_buffer_bytes:
+                if not self._drop_mode:
+                    self._drop_mode = True
+                    self._warn("cap_drop", "Telemetry cap exceeded. Entering drop mode.", event)
         except Exception as e:
             self._warn("cap_enforcement", f"Failed to enforce cap: {e}", event)
 
@@ -121,7 +121,6 @@ class TelemetryWriter:
                     self._warn("write", f"Telemetry write failed: {e}", safe_event)
         except Exception as e:
             self._warn("unexpected", f"Unexpected telemetry failure: {e}")
-
 writer = TelemetryWriter()
 def log_attempt(event, **extra):
     writer.log_attempt(event, **extra)
