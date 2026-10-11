@@ -39,7 +39,7 @@
   - Message: `[unknown] engine/telemetry.py: _enforce_cap uses O(N^2) algorithm: while loop calls _get_total_size() which iterates entire outbox_dir on each iteration; with many files this causes severe I/O blocking`
   - Source: `engine/telemetry.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression** *(skipped: auto-fix failed)*
   - Message: `[unknown] memory/retention.py: Dead code: _archive_partition_worker function is defined but never called; execute_archive_plan uses its own inline wrapper`
   - Source: `memory/retention.py`
 
