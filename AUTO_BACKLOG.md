@@ -15,15 +15,15 @@
   - Message: `[pi_edge_bandit] engine/writeback/so_cases.py: [PYLINT E1121] Consider refactoring the lambda function to pass fewer arguments.`
   - Source: `engine/writeback/so_cases.py`
 
-- [ ] **🔴 Test Regression**
-  - Message: `[unknown] engine/memory_store.py: load_records reads entire file into memory. For large JSONL files (GBs), this causes OOM errors. Both append_unique and find_matching call load_records.`
+- [x] **🔴 Test Regression**
+  - Message: `[unknown] engine/memory_store.py: load_records reads entire file *(resolved)* into memory. For large JSONL files (GBs), this causes OOM errors. Both append_unique and find_matching call load_records.`
   - Source: `engine/memory_store.py`
 
-- [ ] **🔴 Test Regression**
-  - Message: `[unknown] engine/memory_store.py: append_unique recomputes fingerprint for every existing record on each append (O(n) per append). Records already have memory_hash field - should compare against that instead.`
+- [x] **🔴 Test Regression**
+  - Message: `[unknown] engine/memory_store.py: append_unique recomputes fingerprint *(resolved)* for every existing record on each append (O(n) per append). Records already have memory_hash field - should compare against that instead.`
   - Source: `engine/memory_store.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression**
   - Message: `[unknown] engine/multi_file_patcher.py: The `_find_patch_location_strict` function contains `time.sleep(0.1)` inside a while loop that iterates over all exact matches. For a file with many occurrences of a search term, this causes massive l`
   - Source: `engine/multi_file_patcher.py`
 
@@ -440,7 +440,7 @@
   - Source: `engine/memory_store.py`
 
 - [ ] **🟡 Overnight Error**
-  - Message: `[unknown] engine/memory_store.py: append_record doesn't add memory_hash field, unlike append_unique. Inconsistent schema makes downstream queries harder (some records have hash, some don't).`
+  - Message: `[unknown] engine/memory_store.py: append_record doesn't add memory_hash *(resolved)* field, unlike append_unique. Inconsistent schema makes downstream queries harder (some records have hash, some don't).`
   - Source: `engine/memory_store.py`
 
 - [ ] **🟡 Overnight Error**
