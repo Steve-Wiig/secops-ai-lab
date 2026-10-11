@@ -207,7 +207,6 @@ def get_partitions_to_archive(db_url: str, retention_days: int, conn: PgConnecti
             conn.close()
 
 
-import logging
 def execute_archive_plan(db_url: str, partitions: List[str], max_workers: int, dry_run: bool) -> None:
     """
     Execute archiving plan for given partitions.
