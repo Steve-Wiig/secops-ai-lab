@@ -59,13 +59,24 @@ class TelemetryWriter:
                 return
             while total > self.max_buffer_bytes:
                 outbox_files = sorted(self.outbox_dir.glob("pending_*.jsonl"))
-                if outbox_files: outbox_files[0].unlink(missing_ok=True)
+                if outbox_files:
+                    file_to_remove = outbox_files[0]
+                    try:
+                        file_size = file_to_remove.stat().st_size
+                    except OSError:
+                        file_size = 0
+                    file_to_remove.unlink(missing_ok=True)
+                    total -= file_size
+                    if total <= self.max_buffer_bytes:
+                        if self._drop_mode:
+                            self._drop_mode = False
+                            self._warn("recovery", "Telemetry storage under cap, exiting drop mode.", event)
+                        break
                 else:
                     if not self._drop_mode:
                         self._drop_mode = True
                         self._warn("cap_drop", "Telemetry cap exceeded. Entering drop mode.", event)
                     break
-                total = self._get_total_size()
         except Exception as e:
             self._warn("cap_enforcement", f"Failed to enforce cap: {e}", event)
 
