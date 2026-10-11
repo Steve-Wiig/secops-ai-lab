@@ -35,7 +35,7 @@
   - Message: `[unknown] engine/queue_priority.py: Priority mapping logic is duplicated in three places: NUMERIC_SEVERITY_PRIORITY dict (lines 15-25), severity_to_priority function (lines 72-80), and priority_case_sql function (lines 125-131). Any cha`
   - Source: `engine/queue_priority.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression** *(skipped: auto-fix failed)*
   - Message: `[unknown] engine/telemetry.py: _enforce_cap uses O(N^2) algorithm: while loop calls _get_total_size() which iterates entire outbox_dir on each iteration; with many files this causes severe I/O blocking`
   - Source: `engine/telemetry.py`
 
