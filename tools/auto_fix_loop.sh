@@ -59,8 +59,7 @@ verify_changes() {
 
 cleanup_garbage() {
     # Remove any garbage files Aider creates
-    find . -maxdepth 2 -name "Let me fix*" -delete 2>/dev/null || true
-    find . -maxdepth 2 -name "*.py.bak" -delete 2>/dev/null || true
+    find . -maxdepth 2 \( -name "Let me fix*" -o -name "*.py.bak" -o -name "*.orig" -o -name "*~" -o -name "*.swp" \) -delete 2>/dev/null || true
 }
 
 main() {
@@ -92,8 +91,9 @@ main() {
         TEST_FILE=""
         if [[ -n "$SRC" && "$SRC" == *.py ]]; then
             STEM=$(basename "$SRC" .py)
-            CANDIDATE="tests/test_${STEM}.py"
-            [[ -f "$CANDIDATE" ]] && TEST_FILE="$CANDIDATE"
+            for CANDIDATE in "tests/test_${STEM}.py" "tests/${STEM}.py" "tests/unit_${STEM}.py"; do
+                [[ -f "$CANDIDATE" ]] && TEST_FILE="$CANDIDATE" && break
+            done
         fi
         
         # Build prompt from top issue
@@ -109,6 +109,8 @@ main() {
         for attempt in $(seq 1 $MAX_RETRIES); do
             log "▶️ Attempt $attempt/$MAX_RETRIES: $LABEL"
             
+            # Snapshot current state for atomic revert
+            git stash push -q --include-untracked -m "auto-fix-snapshot" 2>/dev/null || true
             if run_aider_with_prompt "$PROMPT" $FILES; then
                 cleanup_garbage
                 
@@ -124,8 +126,7 @@ main() {
                     break
                 else
                     log "⚠️ Verification failed on attempt $attempt, reverting"
-                    git checkout -- . 2>/dev/null || true
-                    git clean -fd 2>/dev/null || true
+                    git stash pop -q 2>/dev/null || { git checkout -- . 2>/dev/null || true; git clean -fd 2>/dev/null || true; }
                 fi
             else
                 log "⚠️ Aider timed out or failed on attempt $attempt"
