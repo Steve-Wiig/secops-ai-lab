@@ -23,24 +23,24 @@ def authorize_transition(current_state: str, target_state: str, job_record: dict
     """
     current = current_state.lower()
     target = target_state.lower()
-    
+
     # 1. Check basic state machine validity
     if target not in VALID_TRANSITIONS.get(current, set()):
         raise StateTransitionViolation(
             f"Illegal transition: {current} -> {target}"
         )
-        
+
     # 2. Enforce P1-4 Invariant: CRITICAL jobs cannot reach terminal states without approval
     if target in ("completed", "failed"):
         priority = str(job_record.get("priority", "normal")).lower()
         approved = job_record.get("approval", {}).get("approved", False)
-        
+
         if priority == "critical" and not approved:
             raise StateTransitionViolation(
                 f"CRITICAL job cannot transition to '{target}' without explicit approval. "
                 f"Current approval state: {job_record.get('approval')}"
             )
-            
+
     return True
 
 
