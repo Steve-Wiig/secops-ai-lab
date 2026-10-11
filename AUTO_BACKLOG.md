@@ -43,7 +43,7 @@
   - Message: `[unknown] memory/retention.py: Dead code: _archive_partition_worker function is defined but never called; execute_archive_plan uses its own inline wrapper`
   - Source: `memory/retention.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression** *(skipped: auto-fix failed)*
   - Message: `[unknown] overnight/pi_idle_reviewer.py: Unbounded memory usage: entire PATCHES_FILE read into memory as list of tuples; large files cause OOM`
   - Source: `overnight/pi_idle_reviewer.py`
 
