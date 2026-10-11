@@ -57,6 +57,22 @@ verify_changes() {
         log "❌ Aider created unexpected files: $new_files"
         return 1
     fi
+
+    # Check for deleted files (catastrophic if unintended)
+    local deleted_files
+    deleted_files=$(git diff --name-only --diff-filter=D HEAD 2>/dev/null || true)
+    if [[ -n "$deleted_files" ]]; then
+        log "❌ Aider deleted files: $deleted_files"
+        return 1
+    fi
+
+    # Check for files in wrong paths (path/to/... or similar)
+    local wrong_path_files
+    wrong_path_files=$(git diff --name-only HEAD 2>/dev/null | grep -E "^path/to/" || true)
+    if [[ -n "$wrong_path_files" ]]; then
+        log "❌ Aider created files in wrong paths: $wrong_path_files"
+        return 1
+    fi
     
     # Syntax check
     local py_files
