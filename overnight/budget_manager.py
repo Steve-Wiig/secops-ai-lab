@@ -73,6 +73,9 @@ LIMITS = {
 # How much buffer to leave before stopping (percentage)
 SAFETY_MARGIN = 0.85  # Stop at 85% of limit to avoid hitting 429
 
+# Named constant for grace period in slot calculations — replaces magic number
+SLOT_GRACE_SECONDS = 0.25
+
 
 class APIBudgetManager:
     """Tracks and enforces API usage limits across providers."""
@@ -215,38 +218,39 @@ class APIBudgetManager:
         if model and 'groq/compound' in model:
             return self.limits.get('groq', self.limits['groq'])
         elif model and ('gpt-oss' in model or 'qwen' in model):
-            return self.limits.get('groq_alt', self.limits['groq'])
+            return self.limits.get('groq_alt', self.limits['groq_alt'])
         else:
             return self.limits.get('groq', self.limits['groq'])
     
     def can_proceed_model_aware(self, provider: str, model: str = None) -> bool:
         """Check if we can proceed, taking model-specific limits into account."""
-        if provider != 'groq':
-            return self.can_proceed(provider)
-        
-        now = time.monotonic()
-        calls = list(self._usage.get(provider, deque()))
-        limits = self.get_limits_for_model(model)
-        
-        # Check per-minute
-        minute_cutoff = now - 60
-        minute_calls = [c for c in calls if c > minute_cutoff]
-        if len(minute_calls) >= self._effective_limit(limits['per_minute']):
-            return False
-        
-        # Check per-hour
-        hour_cutoff = now - 3600
-        hour_calls = [c for c in calls if c > hour_cutoff]
-        if len(hour_calls) >= self._effective_limit(limits['per_hour']):
-            return False
-        
-        # Check per-day
-        day_cutoff = now - 86400
-        day_calls = [c for c in calls if c > day_cutoff]
-        if len(day_calls) >= self._effective_limit(limits['per_day']):
-            return False
-        
-        return True
+        with self._lock:
+            if provider != 'groq':
+                return self.can_proceed(provider)
+            
+            now = time.monotonic()
+            calls = list(self._usage.get(provider, deque()))
+            limits = self.get_limits_for_model(model)
+            
+            # Check per-minute
+            minute_cutoff = now - 60
+            minute_calls = [c for c in calls if c > minute_cutoff]
+            if len(minute_calls) >= self._effective_limit(limits['per_minute']):
+                return False
+            
+            # Check per-hour
+            hour_cutoff = now - 3600
+            hour_calls = [c for c in calls if c > hour_cutoff]
+            if len(hour_calls) >= self._effective_limit(limits['per_hour']):
+                return False
+            
+            # Check per-day
+            day_cutoff = now - 86400
+            day_calls = [c for c in calls if c > day_cutoff]
+            if len(day_calls) >= self._effective_limit(limits['per_day']):
+                return False
+            
+            return True
     
     def wait_if_needed_model_aware(self, provider: str, model: str = None, timeout: int = 120) -> bool:
         """Model-aware precise wait for Groq; delegates for other providers."""
@@ -292,14 +296,15 @@ class APIBudgetManager:
 
     def _seconds_until_slot(self, provider, window_seconds, max_calls):
         """Exact seconds until a slot frees in a sliding window (0.0 if open)."""
-        now = time.monotonic()
-        cutoff = now - window_seconds
-        stamps = [ts for ts in self._usage.get(provider, deque()) if ts > cutoff]
-        effective_max = int(max_calls * SAFETY_MARGIN)
-        if len(stamps) < effective_max:
-            return 0.0
-        oldest = min(stamps)
-        return max(0.0, window_seconds - (now - oldest)) + 0.25
+        with self._lock:
+            now = time.monotonic()
+            cutoff = now - window_seconds
+            stamps = [ts for ts in self._usage.get(provider, deque()) if ts > cutoff]
+            effective_max = int(max_calls * SAFETY_MARGIN)
+            if len(stamps) < effective_max:
+                return 0.0
+            oldest = min(stamps)
+            return max(0.0, window_seconds - (now - oldest)) + SLOT_GRACE_SECONDS
     def wait_if_needed(self, provider: str, timeout: int = 120) -> bool:
         """Sleep precisely until a rate slot opens (no 1s polling spam)."""
         import time as time_mod
