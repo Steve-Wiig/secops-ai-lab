@@ -47,7 +47,7 @@
   - Message: `[unknown] overnight/pi_idle_reviewer.py: Unbounded memory usage: entire PATCHES_FILE read into memory as list of tuples; large files cause OOM`
   - Source: `overnight/pi_idle_reviewer.py`
 
-- [ ] **🔴 Test Regression**
+- [x] **🔴 Test Regression** *(skipped: auto-fix failed)*
   - Message: `[unknown] tools/changelog_completeness_check.py: Module-level functions (get_latest_tag, iter_commits_since_tag, get_commits_since_tag, parse_changelog_hashes) duplicate GitRepo and ChangelogParser class methods for 'backward compatibility with test`
   - Source: `tools/changelog_completeness_check.py`
 
