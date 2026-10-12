@@ -8,13 +8,14 @@ ARCHIVE_BASE = "/var/cache/soc/archive"
 CMR_MOUNT = "/var/cmr"
 
 
+import os
+
 def check_cmr_mount():
     """Check if CMR mount is available.
 
     Raises:
         RuntimeError: If CMR mount is not available
     """
-    import os
     if not os.path.ismount(CMR_MOUNT):
         raise RuntimeError(f"CMR mount {CMR_MOUNT} is not available")
     return True
