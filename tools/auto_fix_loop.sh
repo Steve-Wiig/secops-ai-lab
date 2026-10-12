@@ -166,6 +166,20 @@ main() {
         CMD=$(echo "$OUTPUT" | grep "^aider " | head -1 || true)
         if [[ -z "$CMD" ]]; then
             log "⚠️ No aider command generated, stopping"
+            # Check if this is an unresolvable item (no files found)
+            if echo "$OUTPUT" | grep -q "No relevant files found\|skipping"; then
+                log "⏭️ Skipping unresolvable item: $LABEL"
+                # Mark as done in backlog
+                python3 -c "
+            import re
+            c = open('AUTO_BACKLOG.md').read()
+            c = re.sub(r'- \[ \] (\*\*.*?\*\*)', r'- [x] \1 *(skipped: no resolvable files)*', c, count=1)
+            open('AUTO_BACKLOG.md', 'w').write(c)
+            " 2>/dev/null || true
+                items_skipped=$((items_skipped + 1))
+                echo "$(date +%s)|$LABEL|skipped-no-files" >> "$PROGRESS_FILE"
+                continue
+            fi
             break
         fi
 
