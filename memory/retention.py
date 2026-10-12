@@ -1,3 +1,4 @@
+// entire file content ...
 import os
 import subprocess
 from pathlib import Path
@@ -68,7 +69,7 @@ def run_retention(db_url: str) -> None:
             date_str = partition_name.replace("iocs_", "")
             partition_date = datetime.strptime(date_str, "%Y_%m_%d")
 
-            if (now - partition_date).days > 90:
+            if (now.date() - partition_date.date()).days > 90:
                 archive_partition(conn, partition_name)
     finally:
         conn.close()
