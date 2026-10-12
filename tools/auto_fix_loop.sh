@@ -168,7 +168,7 @@ main() {
             log "⚠️ No aider command generated, stopping"
             # Check if this is an unresolvable item (no files found)
             if echo "$OUTPUT" | grep -q "No relevant files found\|skipping"; then
-                log "⏭️ Skipping unresolvable item: $LABEL"
+                log "⏭️ Skipping unresolvable item: ${LABEL:-unknown}"
                 # Mark as done in backlog
                 python3 -c "
             import re
@@ -177,7 +177,7 @@ main() {
             open('AUTO_BACKLOG.md', 'w').write(c)
             " 2>/dev/null || true
                 items_skipped=$((items_skipped + 1))
-                echo "$(date +%s)|$LABEL|skipped-no-files" >> "$PROGRESS_FILE"
+                echo "$(date +%s)|${LABEL:-unknown}|skipped-no-files" >> "$PROGRESS_FILE"
                 continue
             fi
             break
@@ -205,7 +205,7 @@ main() {
         if [[ -z "$FILES" ]]; then
             log "⏭️ No editable files found, skipping"
             items_skipped=$((items_skipped + 1))
-            echo "$(date +%s)|$LABEL|skipped-no-files" >> "$PROGRESS_FILE"
+            echo "$(date +%s)|${LABEL:-unknown}|skipped-no-files" >> "$PROGRESS_FILE"
             log "--- Moving to next item ---"
             sleep 1
             continue
