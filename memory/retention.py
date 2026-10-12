@@ -8,9 +8,7 @@ ARCHIVE_BASE = "/var/cache/soc/archive"
 CMR_MOUNT = "/var/cmr"
 
 
-import os
-
-def check_cmr_mount():
+def check_cmr_mount() -> bool:
     """Check if CMR mount is available.
 
     Raises:
