@@ -117,7 +117,15 @@ restore_backlog() {
         
         if [[ "$current_size" -lt "$((backup_size / 2))" ]]; then
             log "⚠️ Backlog corrupted (${current_size}b vs ${backup_size}b), restoring"
+    # Robust backlog corruption check
+    if [[ -f AUTO_BACKLOG.md.bak ]]; then
+        CURRENT_SIZE=$(wc -c < AUTO_BACKLOG.md 2>/dev/null || echo 0)
+        BACKUP_SIZE=$(wc -c < AUTO_BACKLOG.md.bak 2>/dev/null || echo 0)
+        if [[ $CURRENT_SIZE -lt 10000 ]] && [[ $BACKUP_SIZE -gt 50000 ]]; then
+            echo "WARNING: Backlog corrupted ($CURRENT_SIZE bytes), restoring from backup ($BACKUP_SIZE bytes)"
             cp AUTO_BACKLOG.md.bak AUTO_BACKLOG.md
+        fi
+    fi
         fi
     fi
 }
@@ -171,7 +179,15 @@ main() {
             log "▶️ Attempt $attempt/$MAX_RETRIES: $LABEL"
 
             # Backup backlog before each Aider call
-            cp AUTO_BACKLOG.md AUTO_BACKLOG.md.bak 2>/dev/null || true
+    # Robust backlog corruption check
+    if [[ -f AUTO_BACKLOG.md.bak ]]; then
+        CURRENT_SIZE=$(wc -c < AUTO_BACKLOG.md 2>/dev/null || echo 0)
+        BACKUP_SIZE=$(wc -c < AUTO_BACKLOG.md.bak 2>/dev/null || echo 0)
+        if [[ $CURRENT_SIZE -lt 10000 ]] && [[ $BACKUP_SIZE -gt 50000 ]]; then
+            echo "WARNING: Backlog corrupted ($CURRENT_SIZE bytes), restoring from backup ($BACKUP_SIZE bytes)"
+            cp AUTO_BACKLOG.md.bak AUTO_BACKLOG.md
+        fi
+    fi
 
             if run_aider_with_prompt "$PROMPT" $FILES; then
                 cleanup_garbage
