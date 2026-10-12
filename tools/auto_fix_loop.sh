@@ -219,7 +219,7 @@ main() {
             log "▶️ Attempt $attempt/2: $LABEL"
 
             # Run aider with timeout
-            if timeout 600 aider --edit-format diff --read "$AUTO_BACKLOG" -m "$PROMPT" --yes-always $FILES 2>&1; then
+            if timeout 600 aider --model "$AIDER_MODEL" --edit-format diff --read "$AUTO_BACKLOG" -m "$PROMPT" --yes-always $FILES 2>&1; then
                 cleanup_garbage
                 restore_backlog
                 rm -f "$TMP_BACKUP"
