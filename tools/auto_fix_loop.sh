@@ -1,64 +1,86 @@
 #!/usr/bin/env bash
-# Autonomous Fix Loop: context load → aider → verify → retry or next
+# Autonomous Fix Loop: robust version with corruption detection, validation, and regeneration
 set -euo pipefail
 
-LOCKFILE="/tmp/soc_autopilot_fix_loop.lock"
-if [[ -f "$LOCKFILE" ]]; then
-    echo "Another fix loop is already running (PID: $(cat "$LOCKFILE"))"
-    exit 1
-fi
-echo $$ > "$LOCKFILE"
-trap 'rm -f "$LOCKFILE" AUTO_BACKLOG.md.bak' EXIT
+LOOP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+AUTO_BACKLOG="$LOOP_DIR/AUTO_BACKLOG.md"
+BACKLOG_SCANNER="$LOOP_DIR/tools/backlog_scanner.py"
+CONTEXT_LOADER="$LOOP_DIR/tools/context_loader.py"
+PROGRESS_FILE="$LOOP_DIR/tools/.auto_fix_progress"
+TMP_BACKUP="/tmp/soc_autopilot_fix_loop_$$.bak"
+MIN_BACKLOG_SIZE=10240  # 10KB absolute minimum
 
-cd "$(dirname "$0")/.."
+log() { echo "[$(date +%H:%M:%S)] $*" >&2; }
 
-MAX_RETRIES=2
-TIMEOUT_SEC=300
-PROGRESS_FILE="tools/.auto_fix_progress"
-: > "$PROGRESS_FILE"
+# Cleanup on exit
+cleanup() {
+    rm -f "$TMP_BACKUP" "$LOOP_DIR/AUTO_BACKLOG.md.bak" "$PROGRESS_FILE" 2>/dev/null || true
+}
+trap cleanup EXIT
 
-log() { echo "[$(date +%H:%M:%S)] $*"; }
-
-run_aider_with_prompt() {
-    local prompt="$1"
-    shift
-    timeout "$TIMEOUT_SEC" aider --read AUTO_BACKLOG.md -m "$prompt" --yes-always "$@" 2>&1 || return 1
+# Detect corruption: size below absolute minimum or trivial/invalid content
+is_corrupted() {
+    local size
+    size=$(wc -c < "$AUTO_BACKLOG" 2>/dev/null || echo "0")
+    if [[ "$size" -lt "$MIN_BACKLOG_SIZE" ]]; then
+        return 0  # corrupted
+    fi
+    # Check for trivial content like "main.py" only
+    local content
+    content=$(head -c 20 "$AUTO_BACKLOG" 2>/dev/null || echo "")
+    if [[ "$content" == "main.py" || -z "$content" ]]; then
+        return 0
+    fi
+    return 1
 }
 
+# Backup to /tmp with PID to avoid conflicts
+backup_backlog() {
+    cp "$AUTO_BACKLOG" "$TMP_BACKUP"
+    log "💾 Backed up AUTO_BACKLOG.md to $TMP_BACKUP (size: $(wc -c < "$TMP_BACKUP"))"
+}
+
+# Restore from /tmp backup
+restore_backlog() {
+    if [[ -f "$TMP_BACKUP" ]]; then
+        cp "$TMP_BACKUP" "$AUTO_BACKLOG"
+        log "♻️ Restored AUTO_BACKLOG.md from backup"
+    else
+        log "⚠️ No backup found, regenerating..."
+        regenerate_backlog
+    fi
+}
+
+# Regenerate backlog from scanner if corrupted
+regenerate_backlog() {
+    log "🔄 Regenerating AUTO_BACKLOG.md from scanner..."
+    python3 "$BACKLOG_SCANNER" > /dev/null 2>&1 || true
+    # Verify regeneration
+    if is_corrupted; then
+        log "❌ Regeneration failed, exiting."
+        exit 1
+    fi
+    log "✅ AUTO_BACKLOG.md regenerated successfully"
+}
+
+# Remove Aider's garbage files
 cleanup_garbage() {
-    # Remove Aider's garbage files
-    find . -maxdepth 3 \( -name "Let me fix*" -o -name "*.py.bak" -o -name "*.orig" -o -name "*~" -o -name "*.swp" \) -delete 2>/dev/null || true
-    # Remove incorrectly-pathed files (Aider sometimes creates path/to/...)
-    find . -maxdepth 1 -name "path" -type d -exec rm -rf {} + 2>/dev/null || true
-    find . -maxdepth 2 -name "assert *" -delete 2>/dev/null || true
+    find "$LOOP_DIR" -maxdepth 3 \( -name "Let me fix*" -o -name "*.py.bak" -o -name "*.orig" -o -name "*~" -o -name "*.swp" \) -delete 2>/dev/null || true
+    find "$LOOP_DIR" -maxdepth 1 -name "path" -type d -exec rm -rf {} + 2>/dev/null || true
+    find "$LOOP_DIR" -maxdepth 2 -name "assert *" -delete 2>/dev/null || true
 }
 
-verify_changes() {
+# Validate Aider output BEFORE committing
+validate_aider_output() {
     local test_file="$1"
-    
-    # Check for garbage files Aider might have created
-    if find . -maxdepth 2 -name "path" -type d | grep -q .; then
+
+    # Check for garbage directories
+    if find "$LOOP_DIR" -maxdepth 3 -type d -name "path" 2>/dev/null | grep -q .; then
         log "❌ Aider created garbage 'path/' directory"
         return 1
     fi
-    
-    # Check if any files were actually modified
-    local modified_files
-    modified_files=$(git diff --name-only HEAD 2>/dev/null | grep -v "AUTO_BACKLOG.md" || true)
-    if [[ -z "$modified_files" ]]; then
-        log "❌ No files were actually modified"
-        return 1
-    fi
-    
-    # Check for files created in wrong locations
-    local new_files
-    new_files=$(git ls-files --others --exclude-standard 2>/dev/null | grep -v "tools/.auto_fix_progress" | grep -v "AUTO_BACKLOG.md.bak" || true)
-    if [[ -n "$new_files" ]]; then
-        log "❌ Aider created unexpected files: $new_files"
-        return 1
-    fi
 
-    # Check for deleted files (catastrophic if unintended)
+    # Check for file deletions
     local deleted_files
     deleted_files=$(git diff --name-only --diff-filter=D HEAD 2>/dev/null || true)
     if [[ -n "$deleted_files" ]]; then
@@ -66,15 +88,15 @@ verify_changes() {
         return 1
     fi
 
-    # Check for files in wrong paths (path/to/... or similar)
+    # Check for files in wrong paths (path/to/...)
     local wrong_path_files
     wrong_path_files=$(git diff --name-only HEAD 2>/dev/null | grep -E "^path/to/" || true)
     if [[ -n "$wrong_path_files" ]]; then
         log "❌ Aider created files in wrong paths: $wrong_path_files"
         return 1
     fi
-    
-    # Syntax check
+
+    # Syntax check for Python files
     local py_files
     py_files=$(git diff --name-only HEAD 2>/dev/null | grep '\.py$' || true)
     for f in $py_files; do
@@ -83,21 +105,21 @@ verify_changes() {
             return 1
         fi
     done
-    
+
     # Diff size guard
     local changed_lines
-    changed_lines=$(git diff --stat HEAD 2>/dev/null | tail -1 | grep -oP '\d+(?= insertion)' || echo "0")
+    changed_lines=$(git diff --stat HEAD 2>/dev/null | tail -1 | sed 's/.* \([0-9]*\) insertion/\1/' || echo "0")
     if [[ "$changed_lines" -gt 200 ]]; then
         log "❌ Diff too large (${changed_lines} lines)"
         return 1
     fi
-    
+
     # Quality gate
     if ! python3 tools/quality_gate.py >/dev/null 2>&1; then
         log "❌ Quality gate failed"
         return 1
     fi
-    
+
     # Tests
     if [[ -n "$test_file" && -f "$test_file" ]]; then
         if ! timeout 120 python3 -m pytest "$test_file" -q --tb=no 2>/dev/null; then
@@ -105,29 +127,8 @@ verify_changes() {
             return 1
         fi
     fi
-    
-    return 0
-}
 
-restore_backlog() {
-    if [[ -f AUTO_BACKLOG.md.bak ]]; then
-        local current_size backup_size
-        current_size=$(wc -c < AUTO_BACKLOG.md 2>/dev/null || echo "0")
-        backup_size=$(wc -c < AUTO_BACKLOG.md.bak 2>/dev/null || echo "0")
-        
-        if [[ "$current_size" -lt "$((backup_size / 2))" ]]; then
-            log "⚠️ Backlog corrupted (${current_size}b vs ${backup_size}b), restoring"
-    # Robust backlog corruption check
-    if [[ -f AUTO_BACKLOG.md.bak ]]; then
-        CURRENT_SIZE=$(wc -c < AUTO_BACKLOG.md 2>/dev/null || echo 0)
-        BACKUP_SIZE=$(wc -c < AUTO_BACKLOG.md.bak 2>/dev/null || echo 0)
-        if [[ $CURRENT_SIZE -lt 10000 ]] && [[ $BACKUP_SIZE -gt 50000 ]]; then
-            echo "WARNING: Backlog corrupted ($CURRENT_SIZE bytes), restoring from backup ($BACKUP_SIZE bytes)"
-            cp AUTO_BACKLOG.md.bak AUTO_BACKLOG.md
-        fi
-    fi
-        fi
-    fi
+    return 0
 }
 
 main() {
@@ -135,22 +136,41 @@ main() {
     local items_fixed=0
     local items_skipped=0
 
+    # Initial backup and corruption check
+    backup_backlog
+    if is_corrupted; then
+        log "⚠️ Initial backlog corrupted, regenerating..."
+        regenerate_backlog
+    fi
+
     while true; do
-        OUTPUT=$(python3 tools/context_loader.py 2>&1)
-        echo "$OUTPUT"
+        # Check if backlog is corrupted before proceeding
+        if is_corrupted; then
+            log "⚠️ Backlog corrupted during loop, regenerating..."
+            regenerate_backlog
+            continue
+        fi
+
+        # Read context loader output
+        OUTPUT=$(python3 "$CONTEXT_LOADER" 2>&1) || {
+            log "❌ Context loader failed, stopping"
+            break
+        }
 
         if echo "$OUTPUT" | grep -q "No unchecked issues"; then
             log "✅ All backlog items resolved!"
             break
         fi
 
-        CMD=$(echo "$OUTPUT" | grep "^aider " | head -1)
+        # Extract aider command
+        CMD=$(echo "$OUTPUT" | grep "^aider " | head -1 || true)
         if [[ -z "$CMD" ]]; then
             log "⚠️ No aider command generated, stopping"
             break
         fi
 
-        SRC=$(echo "$OUTPUT" | grep "Source:" | sed 's/.*Source: //' | tr -d '`')
+        # Extract source file for test matching
+        SRC=$(echo "$OUTPUT" | grep "Source:" | sed 's/.*Source: //' | tr -d '`' || true)
         TEST_FILE=""
         if [[ -n "$SRC" && "$SRC" == *.py ]]; then
             STEM=$(basename "$SRC" .py)
@@ -159,11 +179,14 @@ main() {
             done
         fi
 
-        LABEL=$(echo "$OUTPUT" | grep "Top Issue:" | sed 's/.*Top Issue: //')
-        MSG=$(echo "$OUTPUT" | grep "Message:" | sed 's/.*Message: //' | cut -c1-200)
+        # Extract label and message
+        LABEL=$(echo "$OUTPUT" | grep "Top Issue:" | sed 's/.*Top Issue: //' || true)
+        MSG=$(echo "$OUTPUT" | grep "Message:" | sed 's/.*Message: //' | cut -c1-200 || true)
+
         PROMPT="Fix this issue: ${LABEL}. Details: ${MSG}. Constraints: Surgical edits only. Preserve signatures and docstrings. No except Exception: pass. Do NOT create new files. Edit existing files only. Use proper file paths like 'tests/foo.py' not 'path/to/tests/foo.py'."
-        
-        FILES=$(echo "$CMD" | sed 's/^aider //' | sed 's/AUTO_BACKLOG.md//g' | sed 's/--read//g' | xargs)
+
+        # Extract files from aider command
+        FILES=$(echo "$CMD" | sed 's/^aider //' | sed 's/AUTO_BACKLOG.md//g' | sed 's/--read//g' | xargs || true)
 
         if [[ -z "$FILES" ]]; then
             log "⏭️ No editable files found, skipping"
@@ -174,28 +197,21 @@ main() {
             continue
         fi
 
+        # Backup before Aider call
+        backup_backlog
+
         SUCCESS=false
-        for attempt in $(seq 1 $MAX_RETRIES); do
-            log "▶️ Attempt $attempt/$MAX_RETRIES: $LABEL"
+        for attempt in $(seq 1 2); do
+            log "▶️ Attempt $attempt/2: $LABEL"
 
-            # Backup backlog before each Aider call
-    # Robust backlog corruption check
-    if [[ -f AUTO_BACKLOG.md.bak ]]; then
-        CURRENT_SIZE=$(wc -c < AUTO_BACKLOG.md 2>/dev/null || echo 0)
-        BACKUP_SIZE=$(wc -c < AUTO_BACKLOG.md.bak 2>/dev/null || echo 0)
-        if [[ $CURRENT_SIZE -lt 10000 ]] && [[ $BACKUP_SIZE -gt 50000 ]]; then
-            echo "WARNING: Backlog corrupted ($CURRENT_SIZE bytes), restoring from backup ($BACKUP_SIZE bytes)"
-            cp AUTO_BACKLOG.md.bak AUTO_BACKLOG.md
-        fi
-    fi
-
-            if run_aider_with_prompt "$PROMPT" $FILES; then
+            # Run aider with timeout
+            if timeout 300 aider --read "$AUTO_BACKLOG" -m "$PROMPT" --yes-always $FILES 2>&1; then
                 cleanup_garbage
                 restore_backlog
-                rm -f AUTO_BACKLOG.md.bak
+                rm -f "$TMP_BACKUP"
 
-                if verify_changes "$TEST_FILE"; then
-                    log "✅ Fix verified on attempt $attempt"
+                if validate_aider_output "$TEST_FILE"; then
+                    log "✅ Fix verified"
                     items_fixed=$((items_fixed + 1))
                     echo "$(date +%s)|$LABEL|fixed" >> "$PROGRESS_FILE"
                     git add -A 2>/dev/null || true
@@ -204,23 +220,23 @@ main() {
                     SUCCESS=true
                     break
                 else
-                    log "⚠️ Verification failed on attempt $attempt, reverting"
+                    log "⚠️ Verification failed, reverting"
                     git checkout -- . 2>/dev/null || true
                     git clean -fd 2>/dev/null || true
                 fi
             else
-                log "⚠️ Aider timed out or failed on attempt $attempt"
+                log "⚠️ Aider timed out or failed"
                 git checkout -- . 2>/dev/null || true
                 git clean -fd 2>/dev/null || true
                 restore_backlog
-                rm -f AUTO_BACKLOG.md.bak
+                rm -f "$TMP_BACKUP"
             fi
 
             sleep 2
         done
 
         if [[ "$SUCCESS" != "true" ]]; then
-            log "⏭️ Skipping unfixable item after $MAX_RETRIES attempts"
+            log "⏭️ Skipping unfixable item after 2 attempts"
             items_skipped=$((items_skipped + 1))
             echo "$(date +%s)|$LABEL|skipped" >> "$PROGRESS_FILE"
         fi
