@@ -52,6 +52,27 @@ def find_relevant_files(label, msg, src):
         if _is_real_file(rel):
             candidates.add(rel)
 
+    # Signal 2b: Extract test function names from message (e.g., test_check_cmr_mount_...)
+    test_func_pattern = re.compile(r'(test_[A-Za-z0-9_]+)')
+    for match in test_func_pattern.finditer(msg or ""):
+        func_name = match.group(1)
+        # Search all test files for this function
+        for test_file in (ROOT / "tests").glob("test_*.py"):
+            if test_file.is_file():
+                try:
+                    content = test_file.read_text()
+                    if f"def {func_name}" in content:
+                        candidates.add(f"tests/{test_file.name}")
+                        # Also add the source module being tested
+                        stem = test_file.stem.replace("test_", "")
+                        for subdir in ["engine", "memory", "tools", "edge", "orchestrator"]:
+                            src_file = ROOT / subdir / f"{stem}.py"
+                            if src_file.is_file():
+                                candidates.add(f"{subdir}/{stem}.py")
+                        break
+                except (OSError, UnicodeDecodeError):
+                    pass
+
     # Signal 3: Module keyword mapping
     keywords = re.findall(r'[A-Za-z_]{4,}', (msg or "") + " " + (label or ""))
     mapping = {
