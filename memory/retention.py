@@ -37,8 +37,8 @@ def archive_partition(conn, partition_name: str, dry_run: bool = False) -> None:
         archive_file = archive_dir / f"{partition_name}.jsonl.zst"
         archive_file.touch()
 
-        cursor = conn.cursor()
-        cursor.execute(f"DROP TABLE {partition_name};")
+        with conn.cursor() as cursor:
+            cursor.execute(f"DROP TABLE {partition_name};")
         conn.commit()
 
 
