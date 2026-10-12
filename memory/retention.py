@@ -1,4 +1,3 @@
-// entire file content ...
 import os
 import subprocess
 from pathlib import Path
@@ -66,6 +65,8 @@ def run_retention(db_url: str) -> None:
 
         now = datetime.now()
         for (partition_name,) in partitions:
+            if not partition_name.startswith("iocs_"):
+                continue
             date_str = partition_name.replace("iocs_", "")
             partition_date = datetime.strptime(date_str, "%Y_%m_%d")
 
