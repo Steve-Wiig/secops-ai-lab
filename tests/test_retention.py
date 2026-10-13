@@ -1,7 +1,7 @@
 import pytest
 from pytest_mock import MockerFixture
 from datetime import datetime, timedelta
-from memory.retention import check_cmr_mount
+from memory.retention import check_cmr_mount, CMR_MOUNT
 
 
 def test_check_cmr_mount_raises_when_not_available(mocker: MockerFixture):
