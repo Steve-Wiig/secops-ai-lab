@@ -16,7 +16,7 @@ def test_check_cmr_mount_raises_when_not_available(mocker: MockerFixture):
 
 def test_check_cmr_mount_passes_when_available(mocker: MockerFixture):
     """Test that check_cmr_mount passes when CMR is mounted."""
-    mocker.patch("memory.retention.os.path.ismount", return_value=True)
+    mocker.patch("os.path.ismount", return_value=True)
 
     result = check_cmr_mount()
     assert result is True
