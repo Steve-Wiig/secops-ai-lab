@@ -15,6 +15,7 @@ def check_cmr_mount() -> bool:
         RuntimeError: If CMR mount is not available
     """
     if not os.path.ismount(CMR_MOUNT):
+        print(f"CMR mount check for {CMR_MOUNT}: {os.path.ismount(CMR_MOUNT)}")
         raise RuntimeError("CMR mount /var/cmr is not available")
     return True
 
