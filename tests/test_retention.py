@@ -7,7 +7,6 @@ from memory.retention import check_cmr_mount, CMR_MOUNT
 def test_check_cmr_mount_raises_when_not_available(mocker: MockerFixture):
     """Test that check_cmr_mount raises RuntimeError when CMR is not mounted."""
     mock_ismount = mocker.patch("memory.retention.os.path.ismount", return_value=False)
-    print(f"Mocked ismount return value: {mock_ismount.return_value}")
     
     with pytest.raises(RuntimeError, match="CMR mount /var/cmr is not available"):
         check_cmr_mount()
