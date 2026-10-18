@@ -1,3 +1,4 @@
+import requests
 """Development-only Aider provider selection.
 
 This module is intentionally separate from the SOC ModelRouter.
@@ -163,7 +164,7 @@ class GeminiCatalog(ProviderCatalogABC):
             AiderProvider(
                 name="gemini",
                 model=env.get("AIDER_GEMINI_MODEL", DEFAULT_GEMINI_MODEL),
-                api_base="https://generativelanguage.googleapis.com",
+                api_base="os.environ.get("LLM_API_BASE", "http://localhost:11434")",
                 api_key_env="GEMINI_API_KEY",
             )
         )
@@ -299,3 +300,12 @@ def resolve_aider_providers(
         ])
 
     return tuple(catalog.list_available(env))
+
+class InferenceFailed(Exception): pass
+
+def _p0_safe_post(url, *args, **kwargs):
+    try:
+        return _p0_safe_post(url, *args, **kwargs)
+    except (ConnectionError, Timeout, Exception) as e:
+        print(f"[CRITICAL] P0 Fail-Closed: Network error {e}")
+        raise InferenceFailed("Fail-closed triggered")

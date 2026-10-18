@@ -1,3 +1,4 @@
+import os
 """
 engine/multi_file_patcher.py
 ----------------------------
@@ -254,3 +255,18 @@ def _find_patch_location_strict(source: str, search_text: str) -> int:
         return original_pos
 
     raise ValueError("PATCH LOCATION NOT FOUND: Fuzzy matching disabled for autonomous mutation.")
+
+class SecurityError(Exception): pass
+
+def _p0_mutation_boundary(target_path, basedir="."):
+    if os.path.islink(target_path):
+        raise SecurityError("P0 BLOCK: Symlink escape detected")
+    real_target = os.path.realpath(target_path)
+    real_base = os.path.realpath(basedir)
+    if not real_target.startswith(real_base + os.sep) and real_target != real_base:
+         raise SecurityError("P0 BLOCK: Path traversal attempt blocked")
+
+def _p0_safe_open(filepath, mode='r', *args, **kwargs):
+    if 'w' in mode or 'a' in mode or '+' in mode:
+        _p0_mutation_boundary(filepath, '.')
+    return open(filepath, mode, *args, **kwargs)

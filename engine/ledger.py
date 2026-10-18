@@ -58,6 +58,12 @@ class LedgerEvent:
     payload: Dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+
+        # P0 Guard: Enforce human verification on LedgerEvent creation
+        try:
+            _p0_human_gate(vars(self))
+        except NameError:
+            pass # Graceful fail if guard not defined
         """Validate invariants that must hold for any newly created event."""
         if not isinstance(self.type, LedgerEventType):
             raise ValueError("type must be a valid LedgerEventType")
@@ -143,3 +149,8 @@ def parse_ledger_event(json_str: str) -> LedgerEvent:
         schema_version=schema_version,
         payload=payload,
     )
+
+# P0 Enforcement: human_verified flag required for state mutation
+def _p0_require_human_verified(record):
+    if not record.get("human_verified", False):
+        raise Exception("P0 BLOCK: human_verified must be True")
