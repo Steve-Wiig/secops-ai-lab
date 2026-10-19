@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <title>SOC Autopilot Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 850: '#1f2937', 950: '#0b0f19' } } } } }</script>
+    <style>.terminal { font-family: 'Courier New', Courier, monospace; } .tab-content { display: none; } .tab-content.active { display: block; }</style>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen flex flex-col">
+    <div class="bg-red-500 text-white text-sm py-2 px-4 border-b border-red-200">VERSION 3.7 - MEMORY-AUGMENTED</div>
+    <header class="bg-gray-900 text-white text-sm py-2 px-4 border-b border-gray-800 shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-green-400">🤖 SOC Autopilot <span class="text-gray-500 text-sm font-normal">v3.2</span></h1>
+            <div class="flex gap-4 text-sm"><span>Backlog: <span id="header-backlog" class="text-blue-400 font-mono">0</span></span></div>
+        </div>
+    </header>
+    <main class="flex-1 max-w-7xl mx-auto w-full p-6">
+        <div class="flex gap-2 border-b border-gray-800 mb-6">
+            <button onclick="showTab('swarm')" class="tab-btn active px-4 py-2 text-sm font-semibold text-white border-b-2 border-green-400" data-tab="swarm">Swarm Monitor</button>
+            <button onclick="showTab('dev')" class="tab-btn px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent" data-tab="dev">Dev Workspace</button>
+            <button onclick="showTab('ai')" class="tab-btn px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent" data-tab="ai">AI Workspace</button>
+            <button onclick="showTab('logs')" class="tab-btn px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent" data-tab="logs">Logs</button>
+            <button onclick="showTab('settings')" class="tab-btn px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white border-b-2 border-transparent" data-tab="settings">Settings</button>
+        </div>
+        <div id="swarm" class="tab-content active">
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase">Live Queue Activity</h3>
+                    <span class="text-[10px] text-green-400 font-mono animate-pulse">● LIVE</span>
+                </div>
+                <div id="live-activity" class="space-y-1 terminal text-xs max-h-64 overflow-y-auto bg-black rounded p-3 border border-gray-800"></div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase">System Processes</h3>
+                        <button onclick="restartSwarm()" class="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded">🔄 Restart</button>
+                    </div>
+                    <div id="processes-list" class="space-y-2 text-sm"></div>
+                </div>
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Redis Queues</h3>
+                    <div id="queues-list" class="space-y-2 text-sm"></div>
+                </div>
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Edge Workers</h3>
+                    <div id="workers-list" class="space-y-2 text-sm"></div>
+                </div>
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">API Budget</h3>
+                    <div class="text-2xl font-bold text-white mb-1" id="api-usage">0 / 500</div>
+                    <div class="w-full bg-gray-800 rounded-full h-2 mb-2"><div id="api-progress" class="bg-green-500 h-2 rounded-full" style="width: 0%"></div></div>
+                    <div id="api-status" class="text-xs text-green-400 font-mono">● ACTIVE</div>
+                </div>
+            </div>
+        </div>
+        <div id="dev" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Backlog Status</h3>
+                    <div class="text-4xl font-bold text-blue-400 mb-1" id="backlog-pending">0</div>
+                    <div class="text-sm text-gray-500 mb-4">Items pending fix</div>
+                    <div class="text-4xl font-bold text-red-400 mb-1" id="backlog-dead">0</div>
+                    <div class="text-sm text-gray-500">Items dead-lettered</div>
+                </div>
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-4 lg:col-span-2">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Recent Autonomous Commits</h3>
+                    <div id="commits-list" class="space-y-2 terminal text-sm"></div>
+                </div>
+            </div>
+        </div>
+        <div id="ai" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                    <h3 class="text-lg font-bold text-white mb-4">🛠️ Manual Aider Task</h3>
+                    <div class="space-y-4">
+                        <div><label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Target File Path</label><input type="text" id="aider-file" placeholder="e.g., engine/some_file.py" class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm text-white"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Command / Prompt</label><textarea id="aider-prompt" rows="4" placeholder="Add type hints and docstrings." class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm text-white"></textarea></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Execution Target</label><select id="aider-target" class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm text-white"><option value="laptop">Local Laptop (Ollama)</option><option value="pi">Raspberry Pi</option><option value="cloud_free">Cloud: OpenRouter (Free)</option></select></div>
+                        <button onclick="queueAiderTask()" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">🚀 Queue Fix Task</button>
+                    </div>
+                </div>
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-6">
+                    <h3 class="text-lg font-bold text-white mb-4">Worker Health</h3>
+                    <div id="ai-worker-health" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+        <div id="logs" class="tab-content">
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase">Live Swarm Logs</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="log-filter" placeholder="Filter..." class="bg-gray-950 border border-gray-700 rounded px-3 py-1.5 text-sm text-white" onkeyup="fetchLogs()">
+                        <button onclick="fetchLogs()" class="bg-gray-800 hover:bg-gray-700 text-white text-xs px-3 py-1.5 rounded">Refresh</button>
+                    </div>
+                </div>
+                <div id="log-output" class="terminal text-xs text-gray-300 bg-black rounded p-4 h-[600px] overflow-y-auto space-y-1"></div>
+            </div>
+        </div>
+        <div id="settings" class="tab-content">
+            <div class="max-w-2xl bg-gray-900 border border-gray-800 rounded-lg p-6">
+                <h3 class="text-lg font-bold text-white mb-2">System Configuration</h3>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Fixes Per Pass</label><input type="number" id="fixes-per-pass" value="10" class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm text-white"></div>
+                        <div><label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Max Fix Retries</label><input type="number" id="max-retries" value="3" class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm text-white"></div>
+                    </div>
+                    <div><label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Default Execution Target</label><select id="worker-select" class="w-full bg-gray-950 border border-gray-700 rounded px-3 py-2 text-sm text-white"><option value="laptop">Local Laptop (Ollama)</option><option value="pi">Raspberry Pi</option><option value="cloud_openrouter">Cloud: OpenRouter (Free)</option></select></div>
+                    <button onclick="saveSettings()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded mt-4">💾 Save Settings &amp; Restart Swarm</button>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+        // Dashboard update function fetching from /api/live-activity
+        async function updateDashboard() {
+            try {
+                const res = await fetch('/api/live-activity?t=' + Date.now());
+                const data = await res.json();
+                
+                // Update live activity section
+                const liveActivityDiv = document.getElementById('live-activity');
+                const actData = data.activity || [];
+                liveActivityDiv.innerHTML = actData.map(a => {
+                    let cls = 'text-gray-400';
+                    if (a.includes('✅') || a.includes('disk modified')) cls = 'text-green-400';
+                    else if (a.includes('💀') || a.includes('❌') || a.includes('REJECTED')) cls = 'text-red-400';
+                    else if (a.includes('🔧 Fixing')) cls = 'text-blue-400';
+                    else if (a.includes('Pass')) cls = 'text-yellow-400 font-bold';
+                    return '<div class="' + cls + '">' + a + '</div>';
+                }).join('') || '<div class="text-gray-500">Waiting for activity...</div>';
+                
+                // Schedule next update
+                setTimeout(updateDashboard, 5000);
+            } catch(e) {
+                console.error('Error fetching live activity:', e);
+                setTimeout(updateDashboard, 5000);
+            }
+        }
+        
+        // Tab switching functionality
+        function showTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => { 
+                el.classList.remove('active', 'text-white', 'border-green-400'); 
+                el.classList.add('text-gray-400', 'border-transparent'); 
+            });
+            document.getElementById(id).classList.add('active');
+            const btn = document.querySelector('.tab-btn[data-tab="'+id+'"]');
+            btn.classList.add('active', 'text-white', 'border-green-400');
+            btn.classList.remove('text-gray-400', 'border-transparent');
+            if (id === 'logs') fetchLogs();
+            if (id === 'settings') loadSettings();
+        }
+        
+        // Log fetching (fetches from /api/logs)
+        async function fetchLogs() {
+            const el = document.getElementById('log-output');
+            const filter = document.getElementById('log-filter').value.toLowerCase();
+            try {
+                const res = await fetch('/api/logs?lines=200&t=' + Date.now());
+                const data = await res.json();
+                if (data.error) { el.innerText = "Error: " + data.error; return; }
+                let lines = data.logs || data.lines || [];
+                if (filter) lines = lines.filter(l => l.toLowerCase().includes(filter));
+                el.innerHTML = lines.map(l => {
+                    let f = l.replace(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})/, '<span class="text-blue-400">[$1]</span>')
+                             .replace(/(✅|Fix applied|disk modified)/g, '<span class="text-green-400">$1</span>')
+                             .replace(/(💀|Dead-letter|Error|FAILED|REJECTED)/g, '<span class="text-red-400">$1</span>')
+                             .replace(/(⚠️|WARNING|stale|PAUSED)/g, '<span class="text-yellow-400">$1</span>');
+                    return '<div class="log-line">'+f+'</div>';
+                }).join('');
+                el.scrollTop = el.scrollHeight;
+            } catch(e) { el.innerText = "Failed to load logs."; }
+        }
+        
+        // Settings loading (fetches from /api/settings)
+        async function loadSettings() {
+            try {
+                const res = await fetch('/api/settings?t=' + Date.now());
+                const data = await res.json();
+                document.getElementById('fixes-per-pass').value = data.fixes_per_pass || 10;
+                document.getElementById('max-retries').value = data.max_retries || 3;
+                document.getElementById('worker-select').value = data.primary_worker || 'laptop';
+            } catch(e) {}
+        }
+        
+        // Settings saving (posts to /api/settings)
+        async function saveSettings() {
+            const btn = event.target;
+            const orig = btn.innerText;
+            btn.innerText = "Saving & Restarting...";
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fixes_per_pass: parseInt(document.getElementById('fixes-per-pass').value), max_retries: parseInt(document.getElementById('max-retries').value), primary_worker: document.getElementById('worker-select').value, local_model: 'qwen2.5-coder:7b' }) });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    alert("✅ Saved! Swarm is restarting.");
+                } else { alert("❌ " + data.message); }
+            } catch(e) { alert("Failed: " + e); }
+            finally { btn.innerText = orig; btn.disabled = false; }
+        }
+        
+        // Initialization
+        showTab('swarm');
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+        setInterval(() => { if (document.getElementById('logs').classList.contains('active')) fetchLogs(); }, 10000);
+    </script>
+</body>
+</html>

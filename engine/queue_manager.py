@@ -1,0 +1,659 @@
+"""SQLite-backed triage queue manager.
+
+Provides atomic enqueue/claim/complete operations, lease-based reaping of
+stale jobs, and an approval gate for critical-severity jobs transitioning
+to a terminal state.
+"""
+
+from engine.queue_priority import priority_case_sql
+from engine.strict_queue_transitions import (
+    StateTransitionViolation,
+    transition_queue_state,
+)
+import logging
+import sqlite3
+from typing import Optional
+from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
+
+
+class LeaseLostError(RuntimeError):
+    """Raised when the canonical queue lease is no longer owned."""
+
+# Status constants
+STATUS_PENDING = 'pending'
+STATUS_PROCESSING = 'processing'
+STATUS_COMPLETED = 'completed'
+STATUS_FAILED = 'failed'
+STATUS_SHED = 'shed'
+
+# Severity constants (for Python-side comparisons)
+SEVERITY_CRITICAL = 'critical'
+SEVERITY_HIGH = 'high'
+SEVERITY_MEDIUM = 'medium'
+SEVERITY_LOW = 'low'
+SEVERITY_INFORMATIONAL = 'informational'
+
+SEVERITY_LEVELS = (
+    SEVERITY_CRITICAL,
+    SEVERITY_HIGH,
+    SEVERITY_MEDIUM,
+    SEVERITY_LOW,
+    SEVERITY_INFORMATIONAL,
+)
+
+_SEVERITY_CHECK_SQL = "CHECK (severity IN (" + ", ".join(f"'{s}'" for s in SEVERITY_LEVELS) + "))"
+
+# Status levels for CHECK constraint generation (single source of truth)
+STATUS_LEVELS = (
+    STATUS_PENDING,
+    STATUS_PROCESSING,
+    STATUS_COMPLETED,
+    STATUS_FAILED,
+    STATUS_SHED,
+)
+
+_STATUS_CHECK_SQL = "CHECK (status IN (" + ", ".join(f"'{s}'" for s in STATUS_LEVELS) + "))"
+
+
+class TriageQueueManager:
+    """
+    Manages a triage queue stored in SQLite.
+
+    Attributes
+    ----------
+    conn : sqlite3.Connection
+        SQLite connection object.
+    cursor : sqlite3.Cursor
+        Cursor for executing SQL statements.
+    lease_interval : int
+        Lease duration in seconds for a claimed job.
+    max_attempts : int
+        Maximum number of attempts before a job is marked failed.
+    emergency_depth : int
+        Threshold for backpressure on low‑priority jobs.
+    _lease_modifier : str
+        SQLite `datetime()` modifier string (e.g. "+15 minutes") derived
+        from `lease_interval`, used to compute lease expiration timestamps.
+    """
+
+    def __init__(
+        self,
+        db_path: str = ":memory:",
+        lease_interval: int = 900,
+        max_attempts: int = 3,
+        emergency_depth: int = 1000,
+    ) -> None:
+        """
+        Initialize the queue manager.
+
+        Parameters
+        ----------
+        db_path : str, optional
+            Path to the SQLite database file. Defaults to ":memory:"
+            for an in‑memory database.
+        lease_interval : int, optional
+            Lease duration in seconds for a claimed job. Defaults to 900 (15 minutes).
+        max_attempts : int, optional
+            Maximum number of attempts before a job is marked failed. Defaults to 3.
+        emergency_depth : int, optional
+            Threshold for backpressure on low‑priority jobs. Defaults to 1000.
+        """
+        self.conn: sqlite3.Connection = sqlite3.connect(db_path)  # noqa: blocking-init
+        self.cursor: sqlite3.Cursor = self.conn.cursor()
+        self._init_schema()
+        self.lease_interval: int = lease_interval
+        self.max_attempts: int = max_attempts
+        self.emergency_depth: int = emergency_depth
+        self._lease_modifier: str = f"+{self.lease_interval // 60} minutes"
+        logger.info(
+            "TriageQueueManager initialized with db_path=%s, lease_interval=%d, max_attempts=%d, emergency_depth=%d",
+            db_path,
+            self.lease_interval,
+            self.max_attempts,
+            self.emergency_depth,
+        )
+
+    @staticmethod
+    def _utc_now_str() -> str:
+        """
+        Return the current UTC time formatted for SQLite TIMESTAMP columns.
+
+        Returns
+        -------
+        str
+            Current UTC timestamp formatted as 'YYYY-MM-DD HH:MM:SS'.
+        """
+        return datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+
+    def _init_schema(self) -> None:
+        """
+        Create the necessary tables, indexes, and triggers for the queue.
+        """
+        schema_sql = f"""
+        CREATE TABLE IF NOT EXISTS triage_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            severity TEXT NOT NULL {_SEVERITY_CHECK_SQL},
+            payload_ref TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending' {_STATUS_CHECK_SQL},
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            started_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            lease_expires_at TIMESTAMP,
+            last_heartbeat_at TIMESTAMP,
+            shed_reason TEXT,
+            fail_reason TEXT,
+            failure_reason TEXT,
+            last_modified_by TEXT NOT NULL DEFAULT 'system'
+        );
+
+        CREATE TABLE IF NOT EXISTS triage_queue_approvals (
+            job_id INTEGER NOT NULL,
+            target_status TEXT NOT NULL CHECK (target_status IN ('completed', 'failed')),
+            approved_by TEXT NOT NULL,
+            approved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            reason TEXT,
+            judge_metadata TEXT,
+            PRIMARY KEY (job_id, target_status),
+            FOREIGN KEY (job_id) REFERENCES triage_queue (id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_triage_queue_status_severity_created
+            ON triage_queue (status, severity, created_at);
+
+        CREATE INDEX IF NOT EXISTS idx_triage_queue_lease_expires
+            ON triage_queue (lease_expires_at) WHERE status = 'processing';
+        """
+        self.cursor.executescript(schema_sql)
+        self.conn.commit()
+        logger.debug("Database schema initialized")
+
+    def _get_job_severity(self, job_id: int) -> Optional[str]:
+        """
+        Fetch the severity of a job by ID.
+
+        Parameters
+        ----------
+        job_id : int
+            The job ID to look up.
+
+        Returns
+        -------
+        Optional[str]
+            The severity string, or None if not found.
+        """
+        row = self.cursor.execute("SELECT severity FROM triage_queue WHERE id = ?", (job_id,)).fetchone()
+        return row[0] if row else None
+
+    def _check_approval(self, job_id: int, target_status: str) -> bool:
+        """
+        Check if an approval exists for the job and target status.
+
+        Parameters
+        ----------
+        job_id : int
+            Identifier of the job.
+        target_status : str
+            The target status to check approval for ('completed' or 'failed').
+
+        Returns
+        -------
+        bool
+            True if an approval record exists, False otherwise.
+        """
+        row = self.cursor.execute(
+            "SELECT 1 FROM triage_queue_approvals WHERE job_id = ? AND target_status = ?",
+            (job_id, target_status),
+        ).fetchone()
+        return row is not None
+
+    def require_approval(self, job_id: int, target_status: str) -> None:
+        """
+        Enforce approval requirement for critical jobs transitioning to target_status.
+
+        Parameters
+        ----------
+        job_id : int
+            Identifier of the job.
+        target_status : str
+            The target status ('completed' or 'failed').
+
+        Raises
+        ------
+        RuntimeError
+            If the job is critical and no approval exists for the target status.
+        ValueError
+            If target_status is not 'completed' or 'failed'.
+        """
+        if target_status not in ('completed', 'failed'):
+            raise ValueError("target_status must be 'completed' or 'failed'")
+        severity = self._get_job_severity(job_id)
+        if severity == SEVERITY_CRITICAL:
+            if not self._check_approval(job_id, target_status):
+                raise RuntimeError(
+                    f"Critical job {job_id} requires approval to transition to {target_status}"
+                )
+
+    def approve_job(self, job_id: int, target_status: str, approver: str,
+                    reason: Optional[str] = None, judge_metadata: Optional[str] = None) -> None:
+        """
+        Record an approval for a critical job to transition to target_status.
+
+        Parameters
+        ----------
+        job_id : int
+            Identifier of the job.
+        target_status : str
+            The status being approved ('completed' or 'failed').
+        approver : str
+            Identifier of the approver.
+        reason : Optional[str], optional
+            Free-text reason for the approval.
+        judge_metadata : Optional[str], optional
+            Additional metadata associated with the approval decision.
+        """
+        if target_status not in ('completed', 'failed'):
+            raise ValueError("target_status must be 'completed' or 'failed'")
+        self.cursor.execute(
+            """
+            INSERT OR REPLACE INTO triage_queue_approvals
+            (job_id, target_status, approved_by, reason, judge_metadata)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (job_id, target_status, approver, reason, judge_metadata),
+        )
+        self.conn.commit()
+        logger.info("Approval recorded for job %d to %s by %s", job_id, target_status, approver)
+
+    def enqueue(self, severity: str, payload_ref: str) -> int:
+        """
+        Add a job to the queue.
+
+        Parameters
+        ----------
+        severity : str
+            Job severity ('critical', 'high', 'medium', 'low', 'informational').
+        payload_ref : str
+            Reference to the job payload.
+
+        Returns
+        -------
+        int
+            1 if the job was shed due to backpressure, 0 otherwise.
+        """
+        depth = self.cursor.execute(
+            "SELECT COUNT(*) FROM triage_queue WHERE status = 'pending'"
+        ).fetchone()[0]
+        if depth >= self.emergency_depth and severity in ('low', 'informational'):
+            self.cursor.execute(
+                """
+                INSERT INTO triage_queue
+                    (severity, payload_ref, status, shed_reason, last_modified_by)
+                VALUES (?, ?, 'shed', 'emergency_backpressure', 'system')
+                """,
+                (severity, payload_ref),
+            )
+            self.conn.commit()
+            logger.warning("Job shed due to emergency backpressure: severity=%s, payload_ref=%s", severity, payload_ref)
+            return 1
+        self.cursor.execute(
+            """
+            INSERT INTO triage_queue (severity, payload_ref, last_modified_by)
+            VALUES (?, ?, 'system')
+            """,
+            (severity, payload_ref),
+        )
+        self.conn.commit()
+        logger.info("Job enqueued: severity=%s, payload_ref=%s", severity, payload_ref)
+        return 0
+
+    def _severity_order_sql(self) -> str:
+        """
+        Generate SQL CASE expression for severity priority ordering.
+        Uses SEVERITY_LEVELS tuple as single source of truth.
+
+        Returns
+        -------
+        str
+            A SQL `CASE severity ... END` expression usable in an ORDER BY clause.
+        """
+        cases = " ".join(f"WHEN '{sev}' THEN {i+1}" for i, sev in enumerate(SEVERITY_LEVELS))
+        return f"CASE severity {cases} ELSE {len(SEVERITY_LEVELS)+1} END"
+
+    def claim_job(self, worker_id: str) -> Optional[int]:
+        """
+        Claim the highest‑priority pending job for processing.
+
+        Parameters
+        ----------
+        worker_id : str
+            Identifier of the worker claiming the job.
+
+        Returns
+        -------
+        Optional[int]
+            The ID of the claimed job, or None if no job is available.
+        """
+        # Atomic claim: SELECT-then-UPDATE collapsed into one statement
+        # The subquery finds the highest-priority pending job, and the UPDATE
+        # atomically claims it under SQLite's write lock (no race window).
+        # RETURNING id gives us the claimed job without a second query.
+        now = self._utc_now_str()
+        severity_order = self._severity_order_sql()
+        row = self.cursor.execute(
+            f"""
+            UPDATE triage_queue
+            SET status = 'processing',
+                started_at = ?,
+                attempts = attempts + 1,
+                lease_expires_at = datetime('now', '{self._lease_modifier}'),
+                last_modified_by = ?
+            WHERE id = (
+                SELECT id FROM triage_queue
+                WHERE status = 'pending'
+                ORDER BY {severity_order}, created_at ASC
+                LIMIT 1
+            )
+            RETURNING id
+            """,
+            (now, worker_id)
+        ).fetchone()
+
+        if not row:
+            logger.debug("No pending jobs available for worker %s", worker_id)
+            return None
+
+        self.conn.commit()
+        job_id = row[0]
+        logger.info("Job %d claimed by worker %s", job_id, worker_id)
+        return job_id
+
+    def heartbeat(self, job_id: int) -> None:
+        """
+        Update the heartbeat and lease expiration for a processing job.
+
+        A heartbeat succeeds only when exactly one processing row is updated.
+        Zero rows means the worker no longer owns the lease.
+
+        Parameters
+        ----------
+        job_id : int
+            Identifier of the job to heartbeat.
+
+        Raises
+        ------
+        LeaseLostError
+            If the job is no longer in the 'processing' state owned by this
+            lease (i.e. zero rows were updated).
+        """
+        now = self._utc_now_str()
+        update_result = self.cursor.execute(
+            f"""
+            UPDATE triage_queue
+            SET last_heartbeat_at = ?,
+                lease_expires_at = datetime('now', '{self._lease_modifier}')
+            WHERE id = ? AND status = 'processing'
+            """,
+            (now, job_id),
+        )
+
+        if update_result.rowcount != 1:
+            self.conn.rollback()
+            raise LeaseLostError(
+                f"Lease lost for job {job_id}: heartbeat updated "
+                f"{update_result.rowcount} rows"
+            )
+
+        self.conn.commit()
+        logger.debug("Heartbeat updated for job %d", job_id)
+
+    def reap_stale_jobs(self) -> None:
+        """
+        Recover or fail jobs that have exceeded their lease without completion.
+
+        All state changes route through transition_queue_state, which reads
+        current DB state, re-reads DB-backed approval, and requires
+        rowcount == 1. Critical jobs require approval to fail; without
+        approval they are reset to pending with an escalation flag.
+        """
+        now = self._utc_now_str()
+        stale_jobs = self.cursor.execute(
+            """
+            SELECT id, severity, attempts, lease_expires_at
+            FROM triage_queue
+            WHERE status = 'processing' AND lease_expires_at < ?
+            """,
+            (now,),
+        ).fetchall()
+
+        reset_count = 0
+        failed_count = 0
+
+        for job_id, severity, attempts, lease_expires_at in stale_jobs:
+            if attempts < self.max_attempts:
+                try:
+                    transition_queue_state(
+                        self.conn,
+                        job_id,
+                        "pending",
+                        expected_lease_expires_at=lease_expires_at,
+                    )
+                    self.conn.execute(
+                        "UPDATE triage_queue SET last_modified_by = 'system' "
+                        "WHERE id = ? AND status = 'pending'",
+                        (job_id,),
+                    )
+                    reset_count += 1
+                    logger.info(
+                        "Stale job %d reset to pending (attempt %d/%d)",
+                        job_id, attempts, self.max_attempts,
+                    )
+                except StateTransitionViolation as e:
+                    logger.warning("Stale reset skipped for job %d: %s", job_id, e)
+                continue
+
+            if severity == SEVERITY_CRITICAL and not self._check_approval(job_id, "failed"):
+                # Escalation path: cannot fail, so reset to pending with flag.
+                try:
+                    transition_queue_state(
+                        self.conn,
+                        job_id,
+                        "pending",
+                        expected_lease_expires_at=lease_expires_at,
+                    )
+                    self.conn.execute(
+                        "UPDATE triage_queue SET failure_reason = 'critical_escalation_no_approval', "
+                        "last_modified_by = 'system' "
+                        "WHERE id = ? AND status = 'pending'",
+                        (job_id,),
+                    )
+                    logger.warning(
+                        "ALERT: Critical job %d exceeded max attempts but lacks approval to fail. "
+                        "Moved back to pending with escalation flag. Manual intervention required.",
+                        job_id,
+                    )
+                except StateTransitionViolation as e:
+                    logger.warning(
+                        "Critical escalation reset skipped for job %d: %s", job_id, e
+                    )
+                continue
+
+            try:
+                transition_queue_state(
+                    self.conn,
+                    job_id,
+                    "failed",
+                    "lease_expired_max_attempts",
+                    expected_lease_expires_at=lease_expires_at,
+                )
+                self.conn.execute(
+                    "UPDATE triage_queue SET completed_at = ?, "
+                    "last_modified_by = 'system' "
+                    "WHERE id = ? AND status = 'failed'",
+                    (now, job_id),
+                )
+                failed_count += 1
+                logger.info("Stale job %d failed after max attempts", job_id)
+            except StateTransitionViolation as e:
+                logger.warning("Stale fail skipped for job %d: %s", job_id, e)
+
+        self.conn.commit()
+        if reset_count or failed_count:
+            logger.info("Reaped stale jobs: reset=%d, failed=%d", reset_count, failed_count)
+
+    def _enforce_approval(
+        self,
+        job_id: int,
+        target_status: str = "completed",
+    ) -> None:
+        """Compatibility wrapper around the DB-backed approval gate.
+
+        The authoritative approval state lives in triage_queue_approvals.
+        New code should prefer require_approval(job_id, target_status).
+
+        Parameters
+        ----------
+        job_id : int
+            Identifier of the job.
+        target_status : str, optional
+            The target status to check approval for. Defaults to "completed".
+        """
+        self.require_approval(job_id, target_status)
+
+    def complete_job(self, job_id: int, success: bool = True, reason: Optional[str] = None, changed_by: Optional[str] = None) -> None:
+        """
+        Mark a job as completed or failed.
+
+        Parameters
+        ----------
+        job_id : int
+            Identifier of the job to complete.
+        success : bool, optional
+            Whether the job completed successfully. Defaults to True.
+        reason : str, optional
+            Reason for completion or failure.
+        changed_by : str, optional
+            Identifier of the user or system that changed the job status.
+        """
+        status = STATUS_COMPLETED if success else STATUS_FAILED
+        # Early severity check preserved for callers expecting this error
+        # before any DB mutation occurs. The primitive re-verifies from the
+        # DB, so this is advisory, not authoritative.
+        self.require_approval(job_id, status)
+
+        # Authoritative transition. Reads current DB state, re-reads approval
+        # from the DB, requires rowcount == 1, and fails closed otherwise.
+        transition_queue_state(self.conn, job_id, status, reason)
+
+        now = self._utc_now_str()
+        self.conn.execute(
+            """
+            UPDATE triage_queue
+            SET completed_at = COALESCE(completed_at, ?),
+                last_modified_by = COALESCE(?, 'system')
+            WHERE id = ? AND status = ?
+            """,
+            (now, changed_by, job_id, status),
+        )
+        self.conn.commit()
+        logger.info("Job %d marked as %s", job_id, status)
+
+
+# --- Schema Migration Authority (Moved from worker) ---
+def ensure_queue_schema(conn: sqlite3.Connection) -> bool:
+    """
+    Canonical authority for triage_queue schema migrations.
+
+    Adds any missing columns/tables/indexes required by the current
+    schema version, backfills derived columns (e.g. `priority`,
+    `failure_reason`, `payload_ref`), and ensures the claim index exists.
+
+    Parameters
+    ----------
+    conn : sqlite3.Connection
+        Connection to the database whose schema should be migrated.
+
+    Returns
+    -------
+    bool
+        True if any schema change (new column or rebuilt index) was applied,
+        False if the schema was already up to date.
+    """
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(triage_queue)")
+    columns = {row[1] for row in cursor.fetchall()}
+    changed = False
+
+    if "priority" not in columns:
+        cursor.execute("ALTER TABLE triage_queue ADD COLUMN priority INTEGER NOT NULL DEFAULT 5")
+        changed = True
+
+    worker_columns = {
+        "started_at": "TEXT",
+        "lease_expires_at": "TEXT",
+        "last_heartbeat_at": "TEXT",
+        "payload_ref": "TEXT",
+        "failure_reason": "TEXT",
+        "severity": "TEXT",
+        "last_modified_by": "TEXT NOT NULL DEFAULT 'system'",
+    }
+    for column, sql_type in worker_columns.items():
+        if column not in columns:
+            cursor.execute(f"ALTER TABLE triage_queue ADD COLUMN {column} {sql_type}")
+            changed = True
+
+    cursor.execute("PRAGMA table_info(triage_queue)")
+    columns = {row[1] for row in cursor.fetchall()}
+
+    if "fail_reason" in columns and "failure_reason" in columns:
+        cursor.execute(
+            "UPDATE triage_queue SET failure_reason = fail_reason "
+            "WHERE failure_reason IS NULL AND fail_reason IS NOT NULL"
+        )
+
+    if "payload" in columns and "payload_ref" in columns:
+        cursor.execute(
+            "UPDATE triage_queue SET payload_ref = payload WHERE payload_ref IS NULL"
+        )
+
+    priority_expression = priority_case_sql("severity")
+    cursor.execute(f"UPDATE triage_queue SET priority = {priority_expression}")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS verdicts (
+            job_id TEXT NOT NULL,
+            result TEXT NOT NULL,
+            processed_at TEXT NOT NULL
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS triage_queue_approvals (
+            job_id INTEGER NOT NULL,
+            target_status TEXT NOT NULL
+                CHECK (target_status IN ('completed', 'failed')),
+            approved_by TEXT NOT NULL,
+            approved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            reason TEXT,
+            judge_metadata TEXT,
+            PRIMARY KEY (job_id, target_status),
+            FOREIGN KEY (job_id)
+                REFERENCES triage_queue (id)
+                ON DELETE CASCADE
+        )
+    """)
+
+    if changed or not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_triage_claim'"
+    ).fetchone():
+        conn.execute("DROP INDEX IF EXISTS idx_triage_claim")
+        conn.execute(
+            "CREATE INDEX idx_triage_claim ON triage_queue(status, priority, created_at) "
+            "WHERE status = 'pending'"
+        )
+        changed = True
+
+    conn.commit()
+    return changed

@@ -1,0 +1,1487 @@
+[
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:00:45.088883"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:01:00.763645"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:01:16.493382"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:01:32.322406"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:01:48.129998"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:02:03.897953"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:02:20.281957"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:02:37.527902"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:02:53.801207"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:03:09.790091"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:03:26.475844"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:03:43.052897"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:03:59.294480"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:04:15.060844"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:04:30.787049"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:04:47.194797"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:05:03.428970"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:05:19.515813"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:05:35.862287"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:05:53.809264"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:11.895268"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:28.276051"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:44.359980"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:54.327247"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:55.091086"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:55.863324"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:56.693967"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:06:57.489303"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:13.442042"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:14.165249"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:14.977861"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:15.813087"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:16.527978"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:32.507571"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:33.331994"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:34.476431"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:35.908296"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:37.005498"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:52.692039"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:53.423066"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:54.094582"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:54.771136"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:07:55.401355"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:08:11.185235"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:08:11.959708"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:08:12.826809"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:08:13.461170"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:08:14.140440"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:08:29.859140"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:12:57.862341"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.357883"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.358981"
+  },
+  {
+    "file": "engine/protected_kernel.py",
+    "issue": {
+      "category": "maintainability",
+      "severity": "low",
+      "line_start": 69,
+      "line_end": 77,
+      "description": "_normalise() reimplements path normalization manually instead of using pathlib.Path which provides robust, tested path handling. Manual string manipulation is error-prone and harder to maintain.",
+      "suggestion": "Refactor to use pathlib.Path for normalization. Example: `def _normalise(rel_path: Union[str, Path]) -> str: return str(Path(rel_path).as_posix())` (with proper repo-root-relative resolution).",
+      "impact": "low",
+      "effort": "small"
+    },
+    "source_hash": "5607ec622f57033678b915aca288635cba5ed72e052e08052605457508cc0b05",
+    "advisory_fingerprint": "438521c1f20dc793d7cfacb270f89dbe5ad559d82e8e460c98a10962c256affd",
+    "_dead_letter_reason": "Protected kernel file - cannot be autonomously modified",
+    "_dead_letter_time": "2026-10-06T03:15:34.360215"
+  },
+  {
+    "file": "engine/strict_queue_transitions.py",
+    "issue": {
+      "category": "maintainability",
+      "severity": "medium",
+      "line_start": 82,
+      "line_end": 93,
+      "description": "Inconsistent naming: database column 'severity' (line 82) is passed as 'priority' to authorize_transition (line 93), which expects a 'priority' key (line 35). This creates a brittle dependency on dictionary key naming that could break if schema or mapping changes.",
+      "suggestion": "Standardize on one term. Either rename the DB column to 'priority', or change authorize_transition to expect 'severity', or explicitly map: {'priority': severity, ...}. Add a comment explaining the mapping.",
+      "impact": "medium",
+      "effort": "trivial"
+    },
+    "source_hash": "36bc732a22c6055bc8d85704016b650828b3a783636c7beb30529b8bab72f5ad",
+    "advisory_fingerprint": "1ff87f35d641f1f78ffdafc3a09fc37f127c2c99e88981da171d38853d59d0fa",
+    "_dead_letter_reason": "Protected kernel file - cannot be autonomously modified",
+    "_dead_letter_time": "2026-10-06T03:15:34.360460"
+  },
+  {
+    "file": "engine/strict_queue_transitions.py",
+    "issue": {
+      "category": "maintainability",
+      "severity": "low",
+      "line_start": 49,
+      "line_end": 65,
+      "description": "Missing type hints for transition_queue_state parameters and return type. The function signature lacks annotations for conn, job_id, new_status, failure_reason, expected_lease_expires_at, and return value.",
+      "suggestion": "Add type hints: conn: sqlite3.Connection, job_id: int, new_status: str, failure_reason: Optional[str] = None, expected_lease_expires_at: Optional[str] = None) -> int.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "source_hash": "36bc732a22c6055bc8d85704016b650828b3a783636c7beb30529b8bab72f5ad",
+    "advisory_fingerprint": "1ff87f35d641f1f78ffdafc3a09fc37f127c2c99e88981da171d38853d59d0fa",
+    "_dead_letter_reason": "Protected kernel file - cannot be autonomously modified",
+    "_dead_letter_time": "2026-10-06T03:15:34.360466"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.360631"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.361603"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362078"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362103"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362124"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362175"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362233"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362254"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362275"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362296"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362318"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362339"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362359"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362379"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362399"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362419"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362439"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362460"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362480"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362500"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362552"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362592"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362618"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362640"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362662"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362710"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362759"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362782"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362804"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362826"
+  },
+  {
+    "file": "main.py",
+    "issue": {
+      "category": "blueprint_compliance",
+      "severity": "medium",
+      "line_start": 1,
+      "line_end": 1,
+      "description": "[BANDIT Non-exclusive include/exclude test sets: {'B101'}] Ensure the test set is exclusively included or excluded.",
+      "suggestion": "Ensure the test set is exclusively included or excluded.",
+      "impact": "low",
+      "effort": "trivial"
+    },
+    "attempts": 0,
+    "source": "pi_edge_bandit",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362848"
+  },
+  {
+    "file": "test.py",
+    "line": 10,
+    "desc": "fix bug",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362878"
+  },
+  {
+    "file": "test.py",
+    "line": 20,
+    "desc": "new bug",
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.362891"
+  },
+  {
+    "file": "dummy_test.py",
+    "issue": {
+      "description": "test",
+      "category": "style"
+    },
+    "_dead_letter_reason": "File does not exist",
+    "_dead_letter_time": "2026-10-06T03:15:34.363431"
+  }
+]
