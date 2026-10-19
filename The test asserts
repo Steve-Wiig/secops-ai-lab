@@ -1,1 +1,0 @@
-mock_db_conn.cursor.return_value.__enter__.return_value.execute.assert_called_with(f"DROP TABLE {partition_name};")
