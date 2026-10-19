@@ -1,4 +1,0 @@
-{
-  "target_file": "overnight/self_improver.py",
-  "proposal": "Add a global timeout of 5 minutes to the pytest runner so the daemon doesn't hang on infinite loops."
-}
